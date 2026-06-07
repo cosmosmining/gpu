@@ -15,6 +15,7 @@
 | 2026-06-07 | (phase3) | 3 | 10005/10005 | 100.0 (24/24) | 882 | — | — | Phase 3 gate MET: 10k random + 5 seeds, 0 mismatches, functional coverage 100% |
 | 2026-06-07 | (phase4) | 4 | 10005/10005 | 100.0 | 882 | — | — | Phase 4 gate MET: SymbiYosys proofs A–E PASS unbounded (k-induction, z3); mask-stack/decode/traps |
 | 2026-06-07 | (phase5) | 5 | 10005/10005 | 100.0 (29/29) | 1891 | — | — | Phase 5 gate MET (P1): 2 warps+sched+scratchpad+BAR; lockstep 31/31; fuzz 10k 2-warp 0 mismatch; formal proven (yosys sat) |
+| 2026-06-07 | (phase6-8) | 6-8 | 10005/10005 | 100.0 | 1891 | pending | pending | infra: TT info.yaml+gds.yml (TT action), DFT flow (Fault, pending), datasheet+kernels; arch predictions frozen (lockstep 33/33). WNS/ATPG pending EDA tools (CI) |
 
 ## Flop budget tracker (scarcest resource)
 Hard caps without operator approval:

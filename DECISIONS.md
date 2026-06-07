@@ -12,6 +12,32 @@
   no deleted failing tests. I still stop and ask only on a true blocker I cannot resolve
   reasonably. ISA frozen at v1.0.0 under this delegation.
 
+## 2026-06-07 — Phases 6–8: infrastructure (gates require EDA tools beyond the dev container)
+
+- **D6.1 DFT (scan + ATPG) infrastructure, execution pending Fault.** The flow is scripted
+  in `dft/scan_atpg.sh` (yosys gate-level netlist → Fault scan insertion → ATPG → stuck-at
+  report); test mode is muxed onto `uio` under the existing test-enable CSR bit (CTRL[3]).
+  The Fault tool + sky130 std-cell liberty are not installable in this container, so the
+  ≥95% stuck-at gate is **not yet met** — it runs in CI / the operator's flow. `make dft`
+  detects the tool and reports rather than faking a number (evidence over adjectives).
+
+- **D7.1 Hardening + GDS, execution pending OpenROAD/sky130.** Tiny Tapeout project config
+  is in `info.yaml` (4×2 tiles, top `tt_um_warpone`, 50 MHz, pin map); `.github/workflows/
+  gds.yml` invokes the official `TinyTapeout/tt-gds-action` (+ precheck). The action @tag
+  must be set to the target shuttle (TTSKY26c) by the operator, and the generated
+  `warpone_decode.vh` include path must be confirmed in the TT synth — neither is verifiable
+  in this container (no PDK). So the green-GDS gate + Fmax/WNS/area predictions are **pending**
+  the CI run; `make harden`/`make sweep` document this rather than claim it.
+
+- **D8.1 Release artifacts.** Datasheet (`docs/DATASHEET.md`), demo kernels
+  (`kernels/vecadd.asm`, `kernels/reduce_sum.asm`) with architectural perf-counter
+  predictions frozen in `PREDICTIONS.md` and verified RTL==sim (lockstep 33/33). RP2040
+  firmware (`fw/`) and the v1.0.0 tag are produced at the actual shuttle submission.
+
+- **D-SCOPE. dot-product / parallel-max demos need P2 (MUL/SETP), which is reserved in
+  v1.0.** Shipped demos are vecadd (P0) and reduce_sum (P1, scratchpad+BAR cross-lane sum);
+  the multiply/compare reductions land if P2 is implemented (area permitting, Phase 7).
+
 ## 2026-06-07 — Phase 5: P1 features (2nd warp, scratchpad, barrier)
 
 - **D5.1 P1 microarchitecture.** 2-warp single-issue core; round-robin scheduler matching

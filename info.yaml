@@ -1,0 +1,46 @@
+# Tiny Tapeout project configuration (sky130A). The official tt-gds-action consumes this
+# to harden the design to GDS. Top is tt_um_warpone; sources are the core + wrapper.
+#
+# NOTE: warpone_core.v `\`include`s the generated warpone_decode.vh (from isa/ISA.yaml).
+# CI regenerates it (`make decoder`) and the TT synth must see rtl/core on its include path;
+# see .github/workflows/gds.yml and DECISIONS D7.1. Verified only in CI (no local PDK).
+project:
+  title:        "WarpOne SIMT Core"
+  author:       "WarpOne contributors"
+  discord:      ""
+  description:  "4-lane, 2-warp SIMT compute core: divergence mask stack, banked scratchpad, performance counters"
+  language:     "Verilog"
+  clock_hz:     50000000
+  tiles:        "4x2"
+  top_module:   "tt_um_warpone"
+  source_files:
+    - "rtl/core/warpone_decode.vh"
+    - "rtl/core/warpone_core.v"
+    - "rtl/tt_top/tt_um_warpone.v"
+
+# Pin map (see docs/INTEGRATION.md). Host CSR interface over the TT IOs.
+pinout:
+  ui[0]: "host wdata[0]"
+  ui[1]: "host wdata[1]"
+  ui[2]: "host wdata[2]"
+  ui[3]: "host wdata[3]"
+  ui[4]: "host wdata[4]"
+  ui[5]: "host wdata[5]"
+  ui[6]: "host wdata[6]"
+  ui[7]: "host wdata[7]"
+  uo[0]: "csr rdata byte[0]"
+  uo[1]: "csr rdata byte[1]"
+  uo[2]: "csr rdata byte[2]"
+  uo[3]: "csr rdata byte[3]"
+  uo[4]: "csr rdata byte[4]"
+  uo[5]: "csr rdata byte[5]"
+  uo[6]: "csr rdata byte[6]"
+  uo[7]: "csr rdata byte[7]"
+  uio[0]: "csr addr[0]"
+  uio[1]: "csr addr[1]"
+  uio[2]: "csr addr[2]"
+  uio[3]: "csr addr[3]"
+  uio[4]: "write hi-byte select"
+  uio[5]: "write strobe (we)"
+  uio[6]: "read hi/lo select"
+  uio[7]: "reserved"

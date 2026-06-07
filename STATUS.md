@@ -5,7 +5,17 @@
 > automatically, committing a gate report at each, quality gates kept immutable.
 
 ## Current phase
-**Phase 6 — DFT** (next). Phases 0–5 complete (gates met).
+**Phases 0–5 COMPLETE (gates met).** Phases 6–8 infrastructure in place; their gates
+(≥95% ATPG, green GDS, frozen Fmax) require EDA tools (Fault, OpenROAD, sky130 PDK) not
+installable in the dev container — they run in CI / the operator's flow (DECISIONS D6.1/D7.1).
+
+## Phase 6–8 status (honest)
+- **Phase 6 (DFT):** flow scripted (`dft/scan_atpg.sh`, yosys→Fault), test-enable bit in RTL.
+  Gate (≥95% stuck-at) **pending Fault** (not in container). `make dft` reports tool status.
+- **Phase 7 (harden):** `info.yaml` + `gds.yml`→`TinyTapeout/tt-gds-action` ready; operator
+  sets the shuttle @tag. Architectural perf predictions FROZEN in PREDICTIONS.md (verified
+  RTL==sim); Fmax/WNS/area **pending** the OpenROAD run.
+- **Phase 8 (release):** datasheet + demo kernels done; RP2040 firmware + v1.0.0 tag at submission.
 
 ## Last results
 - **Phase 5 COMPLETE (P1).** 2-warp core: round-robin scheduler (skips halted/barriered),

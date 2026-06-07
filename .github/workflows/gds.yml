@@ -1,6 +1,8 @@
 name: gds
-# Signoff GDS via the official Tiny Tapeout GitHub Action. Wired up in Phase 7; manual
-# trigger placeholder until the design is ready to harden.
+# Signoff GDS via the official Tiny Tapeout GDS action (sky130A). Manual trigger:
+# verify the @tag matches the target shuttle (TTSKY26c) before relying on it, and confirm
+# the generated warpone_decode.vh include resolves in the TT synth (DECISIONS D7.1).
+# Cannot be run/verified in the dev container (no local PDK); runs here in CI.
 on:
   workflow_dispatch:
 
@@ -9,9 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder
+      - name: Regenerate decoder include from ISA.yaml
         run: |
-          echo "GDS signoff is wired to the official Tiny Tapeout GDS action in Phase 7."
-          echo "Until then this job is an intentional no-op (see DECISIONS.md D0.7)."
-      # Phase 7 replaces the step above with:
-      #   uses: TinyTapeout/tt-gds-action@tt10   (or the shuttle-matching tag)
+          python -m pip install --upgrade pip
+          pip install pyyaml
+          python scripts/gen_decoder.py
+      # Replace the tag below with the one matching the target shuttle (TTSKY26c).
+      - uses: TinyTapeout/tt-gds-action@ttsky25a
+  precheck:
+    needs: gds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: TinyTapeout/tt-gds-action/precheck@ttsky25a

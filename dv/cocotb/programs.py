@@ -253,4 +253,29 @@ PROGRAMS = [
         LD  r2, r0
         HALT
     """),
+    # ---- demo kernels (also in kernels/*.asm; predictions in PREDICTIONS.md) ----
+    ("kernel_vecadd", """
+        LANEID r0
+        LDI r1, 1
+        SHL r2, r0, r1
+        ADD r3, r0, r2
+        HALT
+    """),
+    ("kernel_reduce_sum", """
+        LANEID r0
+        ST  r0, r0
+        BAR
+        LDI r1, 0
+        LD  r2, r1
+        LDI r1, 1
+        LD  r3, r1
+        ADD r2, r2, r3
+        LDI r1, 2
+        LD  r3, r1
+        ADD r2, r2, r3
+        LDI r1, 3
+        LD  r3, r1
+        ADD r2, r2, r3
+        HALT
+    """),
 ]

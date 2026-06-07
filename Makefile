@@ -53,17 +53,19 @@ formal: decoder ## formal proofs (yosys SAT temporal induction): mask-stack + sc
 synth: ## [Phase 5+] Yosys synthesis + cell/flop report
 	@echo "[stub] synth: implemented in Phase 5 (Yosys; flop report -> METRICS.md)."
 
-dft: ## [Phase 6] Fault scan insertion + ATPG, stuck-at coverage
-	@echo "[stub] dft: implemented in Phase 6 (Fault scan + ATPG, >=95% stuck-at)."
+predict: ## emit pre-registered architectural perf-counter predictions per kernel (golden sim)
+	@$(PY) $(ROOT)/scripts/predict.py
 
-harden: ## [Phase 7] LibreLane/ORFS hardening to GDS
-	@echo "[stub] harden: implemented in Phase 7 (LibreLane/ORFS -> GDS)."
+dft: ## [Phase 6] Fault scan insertion + ATPG (>=95% stuck-at). Requires the Fault tool.
+	@if command -v fault >/dev/null 2>&1; then bash $(ROOT)/dft/scan_atpg.sh; \
+	 else echo "dft: 'fault' not installed in this env — DFT runs in CI (see dft/README.md, DECISIONS D6.1)."; fi
 
-sweep: ## [Phase 7] parallel DSE (pipeline x utilization x clock) -> Pareto
-	@echo "[stub] sweep: implemented in Phase 7 (parallel DSE -> Pareto table)."
+harden: ## [Phase 7] harden to GDS. Local needs LibreLane/ORFS+sky130; signoff via TT GDS action (CI).
+	@echo "harden: GDS signoff runs via the official Tiny Tapeout action (.github/workflows/gds.yml)."
+	@echo "        Local LibreLane/ORFS hardening needs the sky130 PDK; see DECISIONS D7.1."
 
-predict: ## [Phase 7] emit pre-registered predictions vs sim
-	@echo "[stub] predict: implemented in Phase 7 (freeze PREDICTIONS.md)."
+sweep: ## [Phase 7] parallel DSE (pipeline x utilization x clock) -> Pareto (needs hardening flow)
+	@echo "sweep: DSE harness drives the harden flow across configs; needs LibreLane/ORFS (D7.1)."
 
 isa: decoder ## regenerate consumers (decoder + asm/sim self-test) + run compliance
 	@$(PY) $(ROOT)/isa/asm.py
