@@ -21,5 +21,7 @@ jobs:
           pip install pyyaml
       - name: make smoke
         run: make smoke
+      - name: make compliance
+        run: make compliance
       - name: make tools (report)
         run: make tools

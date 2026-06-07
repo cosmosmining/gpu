@@ -1,9 +1,10 @@
-# WarpOne regression list — one test entry per line; `make regress` runs these.
-# Format (Phase 1+):  <suite>/<test_name>   # description
-# Empty in Phase 0; populated as directed/compliance/lockstep tests are written.
+# WarpOne regression list — `make regress` runs these.
+# Format:  <suite>/<entry>   # description
 #
-# Planned suites:
-#   compliance/*   directed ISA compliance programs with expected traces (Phase 1)
-#   directed/*     divergence depths 0-4, all-lanes-inactive, stack over/underflow,
-#                  barrier deadlock, every bank-conflict pattern (Phase 2/5)
-#   lockstep/*     RTL-vs-sim retired-state comparison kernels (Phase 2)
+# Phase 1 (active):
+compliance/test_compliance.py    # 12 directed P0 ISA-compliance programs on the simulator
+#
+# Phase 2+ (added as they land):
+#   lockstep/*    RTL-vs-sim retired-state comparison kernels
+#   directed/*    divergence depths 0-4, all-lanes-inactive, stack over/underflow,
+#                 barrier deadlock, every bank-conflict pattern

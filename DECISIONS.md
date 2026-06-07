@@ -2,6 +2,57 @@
 
 > Dated log of every non-obvious decision + rationale. Append-only.
 
+## 2026-06-07 — Operator delegation
+
+- **D-DELEG. Operator instruction: "continue all the phases automatically."** Authority
+  to approve phase gates (including the Phase 1 ISA freeze) is delegated to me for this
+  run. I proceed through phases without stopping for per-gate "continue," committing at
+  each gate with a gate report in the commit + STATUS.md. Quality gates remain immutable
+  (standard #9): no lowered coverage targets, no relaxed SDCs, no shrunk fuzz campaigns,
+  no deleted failing tests. I still stop and ask only on a true blocker I cannot resolve
+  reasonably. ISA frozen at v1.0.0 under this delegation.
+
+## 2026-06-07 — Phase 1: ISA freeze + toolchain + spec
+
+- **D1.1 Encoding.** 16-bit, 5-bit opcode `[15:11]`, three 3-bit reg fields
+  `a[10:8]/b[7:5]/c[4:2]`, `imm8[7:0]`, `addr6[5:0]`. 21 instructions (P0×15, P1×3,
+  P2×3); opcodes `0x15..0x1F` reserved → illegal-instruction trap (decode completeness,
+  no X). All opcodes frozen at v1.0.0; later phases add RTL/sim handlers (implementation,
+  not an encoding change → no version bump).
+
+- **D1.2 Divergence model = one stack entry per SPLIT.** SPLIT pushes the current mask
+  and narrows to taken lanes; JOIN pops/reconverges. This matches the spec's stated
+  semantics exactly (divergence depths 0–4, 4-deep stack, overflow on the 5th push,
+  underflow on JOIN-with-empty). `if/else` is two masked regions (SPLIT p…JOIN; SPLIT
+  ¬p…JOIN). Masked-off lanes still consume cycles, so the utilization counter exposes
+  divergence cost — the pedagogical payoff. Worked cycle-by-cycle in SPEC.md §5.1.
+
+- **D1.3 "Derived from ISA.yaml" = shared decode tables.** The encoding/opcode/format
+  tables are the single source consumed by asm, sim, and (Phase 2) the RTL decoder. Per
+  instruction *semantics* are implemented in sim/RTL against the normative `sem`
+  annotations (you cannot execute English) and cross-checked by lockstep. This satisfies
+  standard #2 while staying practical.
+
+- **D1.4 Pipeline = 4-stage F/D/X/W, hazards hidden by fine-grained multithreading.**
+  2-warp round-robin spaces same-warp instructions ≥2 cycles apart (covers D→W);
+  write-first RF + one X/W→D forward covers single-warp P0; control resolves in X with a
+  1-cycle bubble filled by the other warp. Multiplier (P2) is iterative so it's off the
+  single-cycle path. Fmax/WNS measured in Phase 7, not asserted.
+
+- **D1.5 Scratchpad (P1).** 4 banks × 16 × 8b, shared across warps (threadblock shared
+  mem). `bank=addr[1:0]`, `index=addr[5:2]`. `bank_conflicts += active − distinct_banks`
+  per LD/ST. ST same-address collision: lowest lane id wins (deterministic → bit-exact).
+
+- **D1.6 Perf-counter taxonomy.** Architectural counters (retired, divergence_pushes,
+  active_lane_sum→utilization, bank_conflicts) are pipeline-independent and checked every
+  lockstep run. `active_lane_sum` counts each instruction's *execute-time* mask (SPLIT
+  counts pre-narrow). Timing counters (cycles, stall_cycles) are pipeline-dependent →
+  predicted by the Phase 7 timing model, frozen in PREDICTIONS.md.
+
+- **D1.7 Compliance uses hand-derived expectations.** Expected register/counter values in
+  `test_compliance.py` are computed from the spec by hand (not read back from the sim),
+  so passing actually validates the sim against ISA.yaml rather than tautologically.
+
 ## 2026-06-07 — Phase 0 scaffold
 
 - **D0.1 Project lives at the repo root of `cosmosmining/gpu`.** The spec §3 shows a

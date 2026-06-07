@@ -10,6 +10,7 @@
 |------|--------|-------|------|-------|-------|-----|------|-------|
 | 2026-06-07 | (pre-commit) | 0 | — | — | 0 (no core RTL yet) | — | — | scaffold; toolchain detected; `make smoke` implemented |
 | 2026-06-07 | 3083862 | 0 | — | — | 0 (no core RTL yet) | — | — | Phase 0 gate MET: smoke PASS 5/5 local+CI; lint clean (verilator+verible) local+CI |
+| 2026-06-07 | (phase1) | 1 | — | — | 0 (no core RTL yet) | — | — | Phase 1 gate MET: ISA v1.0.0 frozen; compliance 12/12 on sim; SPEC+VPLAN complete |
 
 ## Flop budget tracker (scarcest resource)
 Hard caps without operator approval:

@@ -1,48 +1,107 @@
 # WarpOne ISA — SINGLE SOURCE OF TRUTH (engineering standard #2).
 #
 # The RTL decoder tables, the assembler (isa/asm.py), and the instruction-accurate
-# simulator (isa/sim.py) are ALL derived from this file. When RTL and the simulator
-# disagree, THIS FILE arbitrates. The simulator is NEVER edited to make failing RTL
-# pass. Changes after freeze require operator approval + a version bump + regeneration
-# of all three consumers (`make isa`).
+# simulator (isa/sim.py) all derive their ENCODING/DECODE tables from this file. When
+# RTL and the simulator disagree on behavior, THIS FILE (the `sem` annotations) is the
+# arbiter. The simulator is NEVER edited to make failing RTL pass. Post-freeze ENCODING
+# changes require operator approval + a version bump + `make isa` regeneration.
 #
-# STATUS: DRAFT — NOT FROZEN.
-# The instruction set is defined and FROZEN in Phase 1 (operator-approved). Phase 0
-# carries metadata + datapath shape only, so tooling can validate structure without
-# preempting the ISA-freeze gate.
+# STATUS: FROZEN v1.0.0 (2026-06-07). All opcodes below are stable. Semantics for P0
+# instructions are normative now; P1/P2 opcodes are frozen here and their RTL is built
+# in Phases 5/7 (adding their RTL/sim handlers is implementation, not an encoding change).
 
 isa:
   name: WarpOne
-  version: 0.1.0-draft
-  frozen: false
+  version: 1.0.0
+  frozen: true
+  freeze_date: 2026-06-07
   description: >
     Minimal but architecturally honest 4-lane SIMT core ISA. 16-bit fixed-width
-    instructions over an 8-bit datapath, with structured SPLIT/JOIN divergence
-    handled by a 4-deep per-warp mask stack.
+    instructions over an 8-bit datapath, with structured SPLIT/JOIN divergence handled
+    by a 4-deep per-warp active-mask stack (one stack entry per SPLIT).
 
 datapath:
   lanes: 4
   width_bits: 8
-  regs_per_lane: 8
+  regs_per_lane: 8          # r0..r7, all general-purpose (no hardwired zero)
   warps: 2
-  imem_entries: 32        # P0 baseline; may grow to 64 in P1 if area allows (cap 64)
+  imem_entries: 32          # P0 baseline; up to 64 in P1 if area allows (cap 64)
   instr_width_bits: 16
-  div_stack_depth: 4
+  div_stack_depth: 4        # per-warp; SPLIT pushes 1, JOIN pops 1; overflow/underflow -> TRAP
+  scratchpad:
+    banks: 4
+    entries_per_bank: 16
+    width_bits: 8
+    bank_select: low2       # bank = addr[1:0]; index = addr[5:2]; 6-bit byte address (0..63)
+    shared_across_warps: true   # one scratchpad shared by both warps (threadblock shared mem)
 
+# ---- Instruction encoding (16 bits) ----------------------------------------------
+# Bit layout (MSB..LSB):
+#   [15:11] opcode (5b)
+#   [10:8 ] a   (3b)  -- primary register: rd, or predicate reg (SPLIT), or store-data
+#   [ 7:5 ] b   (3b)  -- rs1, or address reg (LD/ST)
+#   [ 4:2 ] c   (3b)  -- rs2
+#   [ 7:0 ] imm8      -- LDI immediate (overlaps b/c)
+#   [ 5:0 ] addr6     -- JMP target (overlaps b/c and bit1:0)
 encoding:
   instr_width_bits: 16
-  # Field layout (opcode width, register/operand fields, immediate sizes) is finalized
-  # at ISA freeze in Phase 1. Placeholder until then.
-  format: TBD-phase1
-  endianness: big         # CSR I-mem window byte order; confirm at freeze
+  opcode: {hi: 15, lo: 11}
+  fields:
+    a:     {hi: 10, lo: 8}
+    b:     {hi: 7,  lo: 5}
+    c:     {hi: 4,  lo: 2}
+    imm8:  {hi: 7,  lo: 0}
+    addr6: {hi: 5,  lo: 0}
+  # operand kinds: reg (r0..r7), imm8 (0..255 / -128..127), addr6 (0..63 or label)
+  formats:
+    none:  {operands: []}
+    r:     {operands: [{name: rd,  field: a, kind: reg}]}
+    rr:    {operands: [{name: rd,  field: a, kind: reg}, {name: rs1, field: b, kind: reg}]}
+    rrr:   {operands: [{name: rd,  field: a, kind: reg}, {name: rs1, field: b, kind: reg}, {name: rs2, field: c, kind: reg}]}
+    ri:    {operands: [{name: rd,  field: a, kind: reg}, {name: imm, field: imm8, kind: imm8}]}
+    j:     {operands: [{name: addr, field: addr6, kind: addr6}]}
+    s:     {operands: [{name: rp,  field: a, kind: reg}]}
+    store: {operands: [{name: rs1, field: a, kind: reg}, {name: rs2, field: b, kind: reg}]}
 
-# Encodings + semantics annotations land here in Phase 1; then asm/sim/decoder
-# regenerate from this map via `make isa`.
-instructions: {}
+# ---- Instructions ----------------------------------------------------------------
+# `sem` is normative pseudo-code. "active lanes" = lanes set in the warp's current mask M.
+# All ALU results are masked to width_bits (& 0xFF). Writes apply only to active lanes.
+instructions:
+  NOP:    {opcode: 0x00, format: none, phase: P0, sem: "no operation; PC <- PC+1"}
+  HALT:   {opcode: 0x01, format: none, phase: P0, sem: "halt this warp (stops retiring); scheduler skips it"}
+  LDI:    {opcode: 0x02, format: ri,   phase: P0, sem: "for active l: R[l][rd] = imm8 & 0xFF"}
+  MOV:    {opcode: 0x03, format: rr,   phase: P0, sem: "for active l: R[l][rd] = R[l][rs1]"}
+  ADD:    {opcode: 0x04, format: rrr,  phase: P0, sem: "for active l: R[l][rd] = (R[l][rs1] + R[l][rs2]) & 0xFF"}
+  SUB:    {opcode: 0x05, format: rrr,  phase: P0, sem: "for active l: R[l][rd] = (R[l][rs1] - R[l][rs2]) & 0xFF"}
+  AND:    {opcode: 0x06, format: rrr,  phase: P0, sem: "for active l: R[l][rd] = R[l][rs1] & R[l][rs2]"}
+  OR:     {opcode: 0x07, format: rrr,  phase: P0, sem: "for active l: R[l][rd] = R[l][rs1] | R[l][rs2]"}
+  XOR:    {opcode: 0x08, format: rrr,  phase: P0, sem: "for active l: R[l][rd] = R[l][rs1] ^ R[l][rs2]"}
+  SHL:    {opcode: 0x09, format: rrr,  phase: P0, sem: "for active l: R[l][rd] = (R[l][rs1] << (R[l][rs2] & 7)) & 0xFF"}
+  SHR:    {opcode: 0x0A, format: rrr,  phase: P0, sem: "for active l: R[l][rd] = R[l][rs1] >> (R[l][rs2] & 7) (logical)"}
+  LANEID: {opcode: 0x0B, format: r,    phase: P0, sem: "for active l: R[l][rd] = l (0..lanes-1)"}
+  JMP:    {opcode: 0x0C, format: j,    phase: P0, sem: "PC <- addr6 (uniform, all-lane; warp-level)"}
+  SPLIT:  {opcode: 0x0D, format: s,    phase: P0, sem: "t[l] = active(l) AND (R[l][rp] != 0); if SP==DEPTH: TRAP(overflow) else { DS[SP]=M; SP++; M = M AND t }; PC++"}
+  JOIN:   {opcode: 0x0E, format: none, phase: P0, sem: "if SP==0: TRAP(underflow) else { SP--; M = DS[SP] }; PC++  (reconverge)"}
+  LD:     {opcode: 0x0F, format: rr,   phase: P1, sem: "for active l: a=R[l][rs1]&0x3F; R[l][rd]=SCRATCH[a]; bank=a&3 conflicts serialize"}
+  ST:     {opcode: 0x10, format: store, phase: P1, sem: "for active l (low-lane-wins on same addr): a=R[l][rs2]&0x3F; SCRATCH[a]=R[l][rs1]; bank=a&3 conflicts serialize"}
+  BAR:    {opcode: 0x11, format: none, phase: P1, sem: "warp waits at barrier; released when all non-halted warps reach BAR; PC++ on release"}
+  MUL:    {opcode: 0x12, format: rrr,  phase: P2, sem: "for active l: R[l][rd] = (R[l][rs1] * R[l][rs2]) & 0xFF (shared iterative multiplier)"}
+  SETP:   {opcode: 0x13, format: rrr,  phase: P2, sem: "for active l: R[l][rd] = 1 if R[l][rs1] < R[l][rs2] (unsigned) else 0"}
+  SEL:    {opcode: 0x14, format: rrr,  phase: P2, sem: "for active l: R[l][rd] = R[l][rs2] if R[l][rs1] != 0 else R[l][rd]"}
+  # opcodes 0x15..0x1F are RESERVED -> decode to TRAP(illegal) (decode completeness, no X)
 
-# Roadmap ONLY (these are not encodings) — the feature ladder from the spec, recorded
-# here for reference so the Phase 1 freeze has a target. Implement strictly in order.
-planned:
-  P0: [NOP, HALT, LDI, MOV, ADD, SUB, AND, OR, XOR, SHL, SHR, LANEID, JMP, SPLIT, JOIN]
-  P1: [LD, ST, BAR]
-  P2: [MUL, SETP, SEL]
+traps:
+  illegal_opcode:   {code: 1, sem: "undefined opcode -> set warp.trap, halt warp"}
+  stack_overflow:   {code: 2, sem: "SPLIT with SP==div_stack_depth -> set warp.trap, halt warp"}
+  stack_underflow:  {code: 3, sem: "JOIN with SP==0 -> set warp.trap, halt warp"}
+
+# ---- Performance counters (architectural definitions; RTL must match by construction) -
+# Pipeline-independent (validated in lockstep every run):
+#   retired           : count of instructions that commit (per warp + total)
+#   divergence_pushes : count of SPLIT that successfully push (not the overflow-trap case)
+#   active_lane_sum   : sum over retired instructions of popcount(M at execute)
+#                       utilization% = 100 * active_lane_sum / (retired * lanes)
+#   bank_conflicts    : sum over LD/ST of (lanes_active - distinct_banks_touched)
+# Pipeline-dependent (predicted via the Phase 7 timing model, frozen in PREDICTIONS.md):
+#   cycles            : hardware cycles from launch to all-warps-halted
+#   stall_cycles      : by cause (control, barrier, bank-conflict)

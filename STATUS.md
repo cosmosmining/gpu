@@ -1,37 +1,34 @@
 # STATUS
 
 > Update every session. Current phase, last results, next actions.
+> Operator delegated continuous execution (DECISIONS D-DELEG): proceeding through gates
+> automatically, committing a gate report at each, quality gates kept immutable.
 
 ## Current phase
-**Phase 0 — Scaffold** (COMPLETE — gate met; awaiting operator "continue" for Phase 1)
+**Phase 2 — P0 RTL + lockstep** (in progress). Phases 0–1 complete (gates met).
 
 ## Last results
-- Repo bootstrapped on branch `claude/kind-pascal-xamPw` (was empty, no commits).
-- Toolchain installed locally: python3.11, iverilog 12.0, verilator 5.020, yosys 0.33,
-  verible v0.0-4061, peakrdl 1.5.0, pyyaml/cocotb/pytest/numpy. Deferred to CI:
-  SymbiYosys (P4), Fault (P6), LibreLane/ORFS + klayout/magic/netgen (P7).
-- Full repository tree created per spec §3 (46 files).
-- `make smoke` / `make lint` / `make tools` implemented.
-- Local results: **smoke PASS** (5/5 checks), **lint PASS** (verilator + verible clean).
+- **Phase 1 COMPLETE.** ISA frozen at `isa/ISA.yaml` **v1.0.0** (21 instructions, 5-bit
+  opcode, reserved 0x15–0x1F → trap). Assembler (`isa/asm.py`) + golden simulator
+  (`isa/sim.py`) derive decode tables from it. **Compliance 12/12** on the sim
+  (`make compliance`). `docs/SPEC.md` complete incl. the cycle-by-cycle worked
+  divergence example (gate item) + 4-stage pipeline proposal w/ timing justification.
+  `docs/VPLAN.md` maps every P0 feature → named test → coverage point.
+- Phase 0: scaffold; smoke + lint green local + CI.
 
-## Gate status — Phase 0
-Gate: `make smoke` passes locally **and** in CI.
-- [x] Tree scaffolded
-- [x] CLAUDE.md / STATUS.md / DECISIONS.md / METRICS.md / PREDICTIONS.md created
-- [x] Makefile + CI workflows + .claude commands/hooks created
-- [x] `make smoke` green locally  (5/5; lint also clean, both linters)
-- [x] `make smoke` green in CI     (test run 27103292094 success; lint run 27103292111 success)
-
-**Phase 0 gate: MET.**
+## Gate status
+- **Phase 0** — `make smoke` local+CI: **MET**.
+- **Phase 1** — ISA frozen + compliance passes on sim: **MET** (12/12; ISA v1.0.0 frozen
+  under operator delegation D-DELEG).
+- **Phase 2** — 20 directed kernels retire bit-exact RTL vs sim; lint clean: _in progress_.
 
 ## Next actions
-1. **Await operator "continue"** before starting Phase 1.
-2. Phase 1: freeze `isa/ISA.yaml`; derive asm + sim from it; write compliance programs
-   with expected traces; complete `docs/SPEC.md` (worked divergence example + pipeline
-   proposal) and `docs/VPLAN.md`. Gate: operator freezes ISA, compliance suite passes
-   on the simulator.
+1. Phase 2: build P0 RTL module-by-module (decoder generated from ISA.yaml; datapath/
+   ALU; per-warp state + divergence mask stack; register file; I-mem; SPI→APB3→CSR).
+2. cocotb lockstep bench (RTL vs `isa/sim.py`), ≥20 directed kernels bit-exact.
+3. Keep lint clean; update METRICS (flops/block). Commit gate; continue to Phase 3.
 
-## Phase 1 preview (do NOT start until told)
-ISA.yaml frozen; asm + sim derived from it; compliance programs + expected traces;
-SPEC.md with worked divergence example + pipeline proposal; VPLAN.md. Gate: operator
-freezes ISA, compliance suite passes on the simulator.
+## Toolchain
+Local: python3.11, iverilog 12.0, verilator 5.020, yosys 0.33, verible v0.0-4061,
+peakrdl 1.5.0, cocotb/pytest/numpy/pyyaml. Deferred→CI: SymbiYosys (P4), Fault (P6),
+LibreLane/ORFS + klayout/magic/netgen (P7).
