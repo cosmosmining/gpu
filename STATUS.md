@@ -3,7 +3,7 @@
 > Update every session. Current phase, last results, next actions.
 
 ## Current phase
-**Phase 0 — Scaffold** (in progress)
+**Phase 0 — Scaffold** (COMPLETE — gate met; awaiting operator "continue" for Phase 1)
 
 ## Last results
 - Repo bootstrapped on branch `claude/kind-pascal-xamPw` (was empty, no commits).
@@ -20,13 +20,16 @@ Gate: `make smoke` passes locally **and** in CI.
 - [x] CLAUDE.md / STATUS.md / DECISIONS.md / METRICS.md / PREDICTIONS.md created
 - [x] Makefile + CI workflows + .claude commands/hooks created
 - [x] `make smoke` green locally  (5/5; lint also clean, both linters)
-- [ ] `make smoke` green in CI     ← after first push
+- [x] `make smoke` green in CI     (test run 27103292094 success; lint run 27103292111 success)
+
+**Phase 0 gate: MET.**
 
 ## Next actions
-1. Run `make smoke` locally; fix any failures.
-2. Commit (conventional) + push `-u origin claude/kind-pascal-xamPw`.
-3. Confirm CI `lint.yml` + `test.yml` green on the branch.
-4. Present Phase 0 gate report; **wait for operator "continue"** before Phase 1.
+1. **Await operator "continue"** before starting Phase 1.
+2. Phase 1: freeze `isa/ISA.yaml`; derive asm + sim from it; write compliance programs
+   with expected traces; complete `docs/SPEC.md` (worked divergence example + pipeline
+   proposal) and `docs/VPLAN.md`. Gate: operator freezes ISA, compliance suite passes
+   on the simulator.
 
 ## Phase 1 preview (do NOT start until told)
 ISA.yaml frozen; asm + sim derived from it; compliance programs + expected traces;

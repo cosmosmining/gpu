@@ -9,6 +9,7 @@
 | date | commit | phase | fuzz | cov % | flops | WNS | ATPG | notes |
 |------|--------|-------|------|-------|-------|-----|------|-------|
 | 2026-06-07 | (pre-commit) | 0 | — | — | 0 (no core RTL yet) | — | — | scaffold; toolchain detected; `make smoke` implemented |
+| 2026-06-07 | 3083862 | 0 | — | — | 0 (no core RTL yet) | — | — | Phase 0 gate MET: smoke PASS 5/5 local+CI; lint clean (verilator+verible) local+CI |
 
 ## Flop budget tracker (scarcest resource)
 Hard caps without operator approval:
