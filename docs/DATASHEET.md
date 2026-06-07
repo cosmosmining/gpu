@@ -26,8 +26,8 @@ memory with conflict accounting, and performance counters that expose all of it.
 
 ## ISA (frozen v1.0.0 — `isa/ISA.yaml`)
 16-bit fixed-width, 5-bit opcode. P0: NOP, HALT, LDI, MOV, ADD, SUB, AND, OR, XOR, SHL,
-SHR, LANEID, JMP, SPLIT, JOIN. P1: LD, ST, BAR. P2 (reserved): MUL, SETP, SEL. Opcodes
-0x15–0x1F reserved → illegal-instruction trap (decode completeness proven, no X).
+SHR, LANEID, JMP, SPLIT, JOIN. P1: LD, ST, BAR. P2: MUL, SETP, SEL (all implemented).
+Opcodes 0x15–0x1F reserved → illegal-instruction trap (decode completeness proven, no X).
 
 ## Programming model
 1. Reset / `CTRL.reset`. 2. Stream the program to the I-mem window. 3. `CTRL.launch`.
@@ -58,5 +58,6 @@ Each is bit-exact vs the golden simulator; pre-registered perf-counter values: s
   `PREDICTIONS.md` once the hardening and DFT flows have run.
 
 ## Limitations / errata
-See `docs/ERRATA.md`. P2 ops (MUL/SETP/SEL) are reserved (trap) in v1.0. RF and scratchpad
-sit exactly at their flop budgets.
+See `docs/ERRATA.md`. Full ISA (P0/P1/P2) implemented and verified. RF and scratchpad sit
+exactly at their flop budgets; MUL is single-cycle (4 lane multipliers) — at hardening,
+evaluate area/Fmax and, if tight, apply the fallback ladder (drop P2 first / iterative MUL).

@@ -12,6 +12,25 @@
   no deleted failing tests. I still stop and ask only on a true blocker I cannot resolve
   reasonably. ISA frozen at v1.0.0 under this delegation.
 
+## 2026-06-07 — P2 (MUL / SETP / SEL) implemented
+
+- **D-P2.1 Full ISA now live.** The P2 opcodes were already frozen in ISA v1.0.0, so adding
+  their RTL is implementation, not an encoding change (no version bump). RTL `illegal`
+  threshold moved from `op>OP_BAR` to `op>OP_SEL`; only 0x15–0x1F remain reserved → trap
+  (decode completeness preserved; formal still proven). The golden sim already implemented
+  these, so this is pure RTL catch-up verified in lockstep.
+
+- **D-P2.2 MUL is single-cycle (4 per-lane 8×8 multipliers), not iterative-shared.** Chosen
+  for a clean single-cycle lockstep (no MUL-timing modeling, `cycles` still matches the
+  sim). The spec's area-optimized iterative-shared multiplier is a hardening-time refinement;
+  if Phase 7 area/Fmax is tight, the fallback ladder drops P2 first (or swaps to iterative).
+  Cells rose 14420→15043 (+4 MULs); flops unchanged (1891, multipliers are combinational).
+
+- **D-P2.3 Demos unlocked + verified.** `kernels/dotprod.asm` (Σ a·b = 26) and
+  `kernels/parmax.asm` (max = 3) now run; predictions frozen in PREDICTIONS.md.
+  Re-closure: lockstep **36/36** bit-exact, fuzz **10,005 × 2 warps, 0 mismatches, 100%
+  coverage (32/32** incl. MUL/SETP/SEL**)**, formal still PROVEN.
+
 ## 2026-06-07 — Phases 6–8: infrastructure (gates require EDA tools beyond the dev container)
 
 - **D6.1 DFT (scan + ATPG) infrastructure, execution pending Fault.** The flow is scripted

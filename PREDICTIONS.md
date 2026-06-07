@@ -22,7 +22,17 @@ Reproduce the architectural section: `make predict`.
 - bank_conflicts = **12**  (four broadcast loads, all lanes one bank → 3 each)
 - result: every lane → r2 = 0+1+2+3 = **6**
 
-(dot-product and parallel-max need P2 MUL/SETP, reserved in v1.0 — see ERRATA.)
+### dotprod  (18 instructions; per-lane MUL + scratchpad sum reduction)
+- retired = **18**, divergence_pushes = **0**
+- active_lane_sum = **72**  → utilization **100.0%**
+- bank_conflicts = **12**
+- result: every lane → r4 = Σ a·b = 0·2+1·3+2·4+3·5 = **26**
+
+### parmax  (20 instructions; per-lane SETP/SEL max reduction over scratchpad)
+- retired = **20**, divergence_pushes = **0**
+- active_lane_sum = **80**  → utilization **100.0%**
+- bank_conflicts = **12**
+- result: every lane → r4 = max(lane^2 over lanes) = **3**
 
 ## Timing / area — PENDING Phase 7 hardening (OpenROAD/OpenSTA, sky130A tt corner)
 To be frozen here from the hardening run:

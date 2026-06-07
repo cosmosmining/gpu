@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(ROOT, "isa"))
 from asm import Assembler          # noqa: E402
 from sim import Simulator          # noqa: E402
 
-KERNELS = ["vecadd", "reduce_sum"]
+KERNELS = ["vecadd", "reduce_sum", "dotprod", "parmax"]
 
 
 def predict(name):

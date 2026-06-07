@@ -157,7 +157,7 @@ module warpone_core #(
     end
 
     // ---- trap decode -----------------------------------------------------
-    wire illegal = (op > OP_BAR);                  // P1: MUL/SETP/SEL + reserved -> trap
+    wire illegal = (op > OP_SEL);                  // P2 live; only 0x15..0x1F reserved -> trap
     wire ovf     = (op == OP_SPLIT) && (sp[iw] == DEPTH[2:0]);
     wire udf     = (op == OP_JOIN)  && (sp[iw] == 3'd0);
     wire is_trap = illegal | ovf | udf;
@@ -254,7 +254,14 @@ module warpone_core #(
                                 OP_SHR:    rf[iw][lx][fa] <= rf[iw][lx][fb] >> rf[iw][lx][fc][2:0];
                                 OP_LANEID: rf[iw][lx][fa] <= lx[WIDTH-1:0];
                                 OP_LD:     rf[iw][lx][fa] <= scratch[maddr[lx]];
+                                OP_MUL:    rf[iw][lx][fa] <= rf[iw][lx][fb] * rf[iw][lx][fc];
+                                OP_SETP:   rf[iw][lx][fa] <=
+                                               (rf[iw][lx][fb] < rf[iw][lx][fc]) ? 8'd1 : 8'd0;
+                                OP_SEL:    rf[iw][lx][fa] <=
+                                               (rf[iw][lx][fb] != 8'd0) ? rf[iw][lx][fc]
+                                                                        : rf[iw][lx][fa];
                                 default:   ; // ST handled below; control ops no RF write
+
                             endcase
                         end
                     end

@@ -22,7 +22,7 @@ from test_lockstep import (reset_dut, load, run_core,        # noqa: E402
                            read_state, sim_state, compare)
 
 P1_OPS = ["NOP", "HALT", "LDI", "MOV", "ADD", "SUB", "AND", "OR", "XOR", "SHL", "SHR",
-          "LANEID", "JMP", "SPLIT", "JOIN", "LD", "ST", "BAR"]
+          "LANEID", "JMP", "SPLIT", "JOIN", "LD", "ST", "BAR", "MUL", "SETP", "SEL"]
 
 
 def has_st(words):

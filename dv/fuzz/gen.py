@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
 from asm import Assembler          # noqa: E402
 
 P0_RRR = ["ADD", "SUB", "AND", "OR", "XOR", "SHL", "SHR"]
+P2_RRR = ["MUL", "SETP", "SEL"]
 
 
 class Gen:
@@ -35,7 +36,7 @@ class Gen:
     def _reg(self):
         return f"r{self.rng.randrange(self.regs)}"
 
-    def random_program(self, allow_jmp=True, allow_p1=True):
+    def random_program(self, allow_jmp=True, allow_p1=True, allow_p2=True):
         rng = self.rng
         body_len = rng.randint(3, 22)
         instrs = []          # (mnem, [ops], is_jmp_placeholder)
@@ -53,6 +54,8 @@ class Gen:
                 opts += ["JMP"]
             if allow_p1:
                 opts += ["LD", "ST", "BAR"]
+            if allow_p2:
+                opts += P2_RRR
             m = rng.choice(opts)
             if m == "LDI":
                 instrs.append(("LDI", [self._reg(), str(rng.randrange(256))], False))
@@ -62,7 +65,7 @@ class Gen:
                 instrs.append(("LANEID", [self._reg()], False))
             elif m == "NOP":
                 instrs.append(("NOP", [], False))
-            elif m in P0_RRR:
+            elif m in P0_RRR or m in P2_RRR:
                 instrs.append((m, [self._reg(), self._reg(), self._reg()], False))
             elif m == "LD":
                 instrs.append(("LD", [self._reg(), self._reg()], False))

@@ -278,4 +278,55 @@ PROGRAMS = [
         ADD r2, r2, r3
         HALT
     """),
+    # ---- P2 ops + reduction demos (MUL / SETP / SEL) ----
+    ("p2_ops", """
+        LDI r0, 7
+        LDI r1, 6
+        MUL r2, r0, r1
+        SETP r3, r1, r0
+        SEL r4, r3, r0
+        HALT
+    """),
+    ("kernel_dotprod", """
+        LANEID r0
+        LDI r1, 2
+        ADD r1, r0, r1
+        MUL r2, r0, r1
+        ST  r2, r0
+        BAR
+        LDI r3, 0
+        LD  r4, r3
+        LDI r3, 1
+        LD  r5, r3
+        ADD r4, r4, r5
+        LDI r3, 2
+        LD  r5, r3
+        ADD r4, r4, r5
+        LDI r3, 3
+        LD  r5, r3
+        ADD r4, r4, r5
+        HALT
+    """),
+    ("kernel_parmax", """
+        LANEID r0
+        LDI r1, 2
+        XOR r2, r0, r1
+        ST  r2, r0
+        BAR
+        LDI r3, 0
+        LD  r4, r3
+        LDI r3, 1
+        LD  r5, r3
+        SETP r6, r4, r5
+        SEL r4, r6, r5
+        LDI r3, 2
+        LD  r5, r3
+        SETP r6, r4, r5
+        SEL r4, r6, r5
+        LDI r3, 3
+        LD  r5, r3
+        SETP r6, r4, r5
+        SEL r4, r6, r5
+        HALT
+    """),
 ]
