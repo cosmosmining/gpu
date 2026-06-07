@@ -1,9 +1,0 @@
-# running in dv/formal/warpone_mask/src/
-read_verilog -sv -formal -DFORMAL warpone_core.v
-prep -top warpone_core
-
-# paths relative to the invocation cwd (repo root); run via `make formal`
-hierarchy -smtcheck
-rename -witness
-write_jny -no-connections ../model/design.json
-write_rtlil ../model/design.il
