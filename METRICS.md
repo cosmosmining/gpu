@@ -13,6 +13,7 @@
 | 2026-06-07 | (phase1) | 1 | — | — | 0 (no core RTL yet) | — | — | Phase 1 gate MET: ISA v1.0.0 frozen; compliance 12/12 on sim; SPEC+VPLAN complete |
 | 2026-06-07 | (phase2) | 2 | 25/25 lockstep | — | 882 | — | — | Phase 2 gate MET: 25 directed kernels bit-exact RTL vs sim; lint clean (verilator+verible) |
 | 2026-06-07 | (phase3) | 3 | 10005/10005 | 100.0 (24/24) | 882 | — | — | Phase 3 gate MET: 10k random + 5 seeds, 0 mismatches, functional coverage 100% |
+| 2026-06-07 | (phase4) | 4 | 10005/10005 | 100.0 | 882 | — | — | Phase 4 gate MET: SymbiYosys proofs A–E PASS unbounded (k-induction, z3); mask-stack/decode/traps |
 
 ## Flop budget tracker (scarcest resource)
 Hard caps without operator approval:

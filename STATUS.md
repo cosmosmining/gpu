@@ -5,28 +5,29 @@
 > automatically, committing a gate report at each, quality gates kept immutable.
 
 ## Current phase
-**Phase 4 — Formal** (next). Phases 0–3 complete (gates met).
+**Phase 5 — P1 features** (next). Phases 0–4 complete (gates met).
 
 ## Last results
-- **Phase 3 COMPLETE.** Legal-by-construction generator (`dv/fuzz/gen.py`); **10,005
-  programs (10k random + 5 seeds), 0 RTL-vs-sim mismatches, functional coverage 100%
-  (24/24 bins)** in ~3 min (`make fuzz`; report in `dv/fuzz/coverage.json`).
-- Phase 2: P0 RTL; lockstep 25/25 bit-exact; 882 flops; lint clean.
-- Phase 1: ISA v1.0.0 frozen; compliance 12/12. Phase 0: scaffold; smoke+lint CI.
+- **Phase 4 COMPLETE.** SymbiYosys proofs (`make formal`, z3): properties A–E **PASS
+  unbounded** (basecase + k-induction): mask-stack `sp≤DEPTH`, sp-step≤1, decode
+  completeness (retire-or-trap, no X), SPLIT-overflow trap, JOIN-underflow trap. Proof
+  <1 s after COI reduction (free instruction stream + pruned I-mem/RF). Scheduler-fairness
+  + write-port-arbitration proofs deferred to Phase 5 (need the 2nd warp; D4.4).
+- Phase 3: 10,005 fuzz programs, 0 mismatches, 100% coverage.
+- Phase 2: P0 RTL; 25/25 lockstep; 882 flops. Phase 1: ISA v1.0.0; compliance 12/12.
 
 ## Gate status
-- **Phase 0** — smoke local+CI: **MET**.
-- **Phase 1** — ISA frozen + compliance: **MET** (12/12).
-- **Phase 2** — ≥20 kernels bit-exact + lint: **MET** (25/25).
-- **Phase 3** — ≥10k fuzz @ 0 mismatch + ≥95% cov: **MET** (10005, 0, 100%).
-- **Phase 4** — SymbiYosys proofs (mask stack, scheduler, decode completeness, write-port): _next_.
+- **Phase 0** smoke: **MET** · **Phase 1** ISA+compliance: **MET** (12/12) ·
+  **Phase 2** lockstep: **MET** (25/25) · **Phase 3** fuzz: **MET** (10005/0/100%) ·
+  **Phase 4** formal: **MET** (A–E proven unbounded).
+- **Phase 5** — 2nd warp + scheduler, scratchpad LD/ST + conflicts, BAR, debug; re-close 3–4: _next_.
 
 ## Next actions
-1. Phase 4: SymbiYosys properties — mask-stack no over/underflow (or trap), decode
-   completeness (no X / every encoding executes-or-traps), register write-port arbitration,
-   scheduler no-deadlock+fairness (the scheduler proof gains teeth once P1's 2nd warp lands).
-2. Phase 5: P1 — 2nd warp + round-robin scheduler, banked scratchpad LD/ST + conflict
-   counter, BAR, debug halt/resume/step; re-close fuzz + formal on the expanded design.
+1. Phase 5 (P1): add 2nd warp + round-robin scheduler (skip halted/barriered), banked
+   scratchpad (4×16×8b) LD/ST with bank-conflict serialization + counter, BAR barrier,
+   debug halt/resume/step. RF doubles to 512 flops (cap).
+2. Re-close: two-warp interleaved fuzzing + barrier/bank-conflict directed tests; add
+   scheduler-no-deadlock/fairness + write-port-arbitration formal proofs.
 3. Phase 6 DFT · Phase 7 harden+DSE+predictions · Phase 8 release.
 
 ## Toolchain

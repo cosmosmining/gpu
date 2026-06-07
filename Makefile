@@ -47,8 +47,8 @@ cov: ## show the latest fuzz functional-coverage report
 regress: compliance sim ## run the full regression: ISA compliance + RTL lockstep
 	@echo "regress: compliance + RTL lockstep complete."
 
-formal: ## [Phase 4+] SymbiYosys properties (mask stack, scheduler, decode, write-port)
-	@echo "[stub] formal: implemented in Phase 4 (SymbiYosys .sby properties)."
+formal: decoder ## SymbiYosys proofs (mask-stack safety, decode completeness, traps)
+	@cd $(ROOT) && sby -f dv/formal/warpone_mask.sby
 
 synth: ## [Phase 5+] Yosys synthesis + cell/flop report
 	@echo "[stub] synth: implemented in Phase 5 (Yosys; flop report -> METRICS.md)."

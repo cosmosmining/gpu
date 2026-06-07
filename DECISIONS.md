@@ -12,6 +12,32 @@
   no deleted failing tests. I still stop and ask only on a true blocker I cannot resolve
   reasonably. ISA frozen at v1.0.0 under this delegation.
 
+## 2026-06-07 — Phase 4: formal
+
+- **D4.1 Formal environment assumptions** (stated, bounded-proof discipline): (a)
+  `assume(!(csr_we && running))` — the real host protocol never writes CSRs mid-run; this
+  excludes the unphysical reset-core-vs-execute race. (b) `if ($initstate) assume(!rst_n)`
+  — forces a reset in the initial state so the synchronous reset defines all registers
+  (formal otherwise starts them symbolic).
+
+- **D4.2 Cone-of-influence reduction for tractability.** Under `\`ifdef FORMAL`: the
+  instruction stream `instr` is a free `(* anyseq *)` input (so properties are proven for
+  ANY instruction stream — strictly stronger than fetching from I-mem), and `csr_rdata` is
+  tied to 0 so `opt_clean` prunes the 512-flop I-mem and 256-flop RF (not in the
+  properties' COI). Result: proof completes in <1 s.
+
+- **D4.3 Properties PROVEN UNBOUNDED (k-induction, depth 12; basecase + induction both
+  pass):** (A) `sp <= DEPTH` always — no silent mask-stack overflow; (B) sp moves by ≤1
+  per executed cycle; (E) decode completeness / progress — every issued instruction
+  retires or traps (no X, no hang); (C) SPLIT on a full stack → overflow trap, no push;
+  (D) JOIN on an empty stack → underflow trap. Temporal induction success = unbounded, not
+  merely bounded.
+
+- **D4.4 Scheduler no-deadlock/fairness + register write-port arbitration are deferred to
+  Phase 5.** They are only meaningful with the 2nd warp + contention (P0 is single-warp,
+  single-issue → trivially one writer, degenerate scheduler). Phase 5 re-closure adds these
+  proofs per the plan ("re-run Phase 3–4 closure on the expanded design").
+
 ## 2026-06-07 — Phase 3: fuzz closure
 
 - **D3.1 Legal-by-construction generator** (`dv/fuzz/gen.py`): P0 opcodes only; SPLIT only
