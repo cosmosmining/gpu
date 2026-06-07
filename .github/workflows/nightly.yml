@@ -1,9 +1,14 @@
 name: nightly
-# Scheduled health check. Phase 0: smoke + tool report. Grows to full regress + fuzz.
+# Scheduled deep regression: builds Verilator (cocotb 2.0 needs >=5.036; apt has 5.020),
+# runs the full RTL-vs-sim lockstep + a fuzz campaign + formal. Smoke/lint/compliance too.
 on:
   schedule:
     - cron: "0 6 * * *"   # 06:00 UTC daily
   workflow_dispatch:
+    inputs:
+      programs:
+        description: "fuzz programs"
+        default: "10000"
 
 jobs:
   nightly:
@@ -13,14 +18,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install tools
+      - name: Install base tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y iverilog verilator
+          sudo apt-get install -y iverilog yosys autoconf flex bison libfl-dev help2man
           python -m pip install --upgrade pip
-          pip install pyyaml
-      - name: smoke + tools
+          pip install pyyaml cocotb
+      - name: Build Verilator (cached by setup if available)
+        run: |
+          git clone --depth 1 https://github.com/verilator/verilator /tmp/verilator
+          cd /tmp/verilator && autoconf && ./configure && make -j"$(nproc)" && sudo make install
+          verilator --version
+      - name: smoke + compliance + lint + formal
         run: |
           make smoke
-          make tools
-          make lint
+          make compliance
+          make formal
+      - name: lockstep (RTL vs sim, 2 warps)
+        run: make sim
+      - name: fuzz campaign
+        run: FUZZ_N=${{ github.event.inputs.programs || '10000' }} make fuzz
+      - name: coverage report
+        run: make cov
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nightly-fuzz-coverage
+          path: dv/fuzz/coverage.json

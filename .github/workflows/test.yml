@@ -23,7 +23,7 @@ jobs:
         run: make smoke
       - name: make compliance
         run: make compliance
-      - name: make sim (RTL-vs-sim lockstep)
-        run: make sim
       - name: make tools (report)
         run: make tools
+      # The RTL-vs-sim lockstep + fuzz need Verilator >=5.036 (cocotb 2.0); they run in
+      # nightly.yml / fuzz.yml which build Verilator. Push CI stays fast (smoke+compliance).
