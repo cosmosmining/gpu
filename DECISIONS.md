@@ -12,6 +12,36 @@
   no deleted failing tests. I still stop and ask only on a true blocker I cannot resolve
   reasonably. ISA frozen at v1.0.0 under this delegation.
 
+## 2026-06-07 — Phase 5: P1 features (2nd warp, scratchpad, barrier)
+
+- **D5.1 P1 microarchitecture.** 2-warp single-issue core; round-robin scheduler matching
+  the sim exactly (cur==sim.rr); banked scratchpad (4×16×8, shared) with LD/ST,
+  bank-conflict serialization counting (`active − distinct_banks`), and **low-lane-wins**
+  store collisions; BAR barrier. Barrier-release is its own clock that retires the
+  barriered warps (not counted as an issue), so the `cycles` counter (issues only) matches
+  the sim's step accounting.
+
+- **D5.2 Toolchain switch for P1 verification.** cocotb 2.0 needs Verilator ≥5.036 → built
+  Verilator 5.049 from source (apt only had 5.020). Icarus cannot read 3-D arrays inside
+  `always_*` ("sorry: constant selects…") and would silently miscompile, so the lockstep/
+  fuzz run on Verilator. The local z3 4.8.12 hangs at SMT step 0 on the 2-warp formal model
+  (solver pathology; pip-z3 has no CLI, yices unpackaged), so formal uses **yosys's
+  built-in `sat -tempinduct`** (minisat) instead of SymbiYosys+z3 — unbounded proof, no
+  external solver. (Phase 4's P0 proofs remain valid; this is just the engine.)
+
+- **D5.3 Barrier-release counter bug fix.** A per-warp `c_ret <= c_ret + 1` loop lost
+  increments under nonblocking last-write-wins; replaced with a single accumulated add
+  (`num_rel`/`act_rel`). Caught by the `barrier_simple` lockstep mismatch (rtl 7 vs sim 8).
+
+- **D5.4 Formal scope for P1.** PROVEN (yosys sat, temporal induction): per-warp mask-stack
+  `sp ≤ DEPTH`, and scheduler no-deadlock (running + a live warp ⇒ issue or release every
+  cycle). Register/scratch write-port arbitration (store low-lane-wins ⇒ ≤1 write/byte) is
+  verified dynamically by the 10k-program 2-warp fuzz with bit-exact scratchpad comparison.
+
+- **D5.5 Area watch.** 1891 flops; RF and scratchpad are **exactly at their flop caps**.
+  ~14.4k generic cells pre-tech-map (large variable-index read muxes for I-mem/RF/scratch
+  across 2 warps). Flagged for Phase 7 hardening; area fallback ladder is ready if >70% util.
+
 ## 2026-06-07 — Phase 4: formal
 
 - **D4.1 Formal environment assumptions** (stated, bounded-proof discipline): (a)

@@ -47,8 +47,8 @@ cov: ## show the latest fuzz functional-coverage report
 regress: compliance sim ## run the full regression: ISA compliance + RTL lockstep
 	@echo "regress: compliance + RTL lockstep complete."
 
-formal: decoder ## SymbiYosys proofs (mask-stack safety, decode completeness, traps)
-	@cd $(ROOT) && sby -f dv/formal/warpone_mask.sby
+formal: decoder ## formal proofs (yosys SAT temporal induction): mask-stack + scheduler
+	@cd $(ROOT) && yosys -q dv/formal/warpone_mask.ys && echo "formal: PROVEN (temporal induction)"
 
 synth: ## [Phase 5+] Yosys synthesis + cell/flop report
 	@echo "[stub] synth: implemented in Phase 5 (Yosys; flop report -> METRICS.md)."

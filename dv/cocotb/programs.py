@@ -206,4 +206,51 @@ PROGRAMS = [
         JOIN
         HALT
     """),
+    # ---- P1: scratchpad LD/ST, bank conflicts, barrier (2-warp shared memory) ----
+    ("st_ld", """
+        LANEID r0
+        LDI r1, 0x50
+        ADD r1, r1, r0
+        ST  r1, r0
+        LD  r2, r0
+        HALT
+    """),
+    ("bank_conflict_all", """
+        LDI r0, 0
+        LDI r1, 0xAB
+        ST  r1, r0
+        LD  r2, r0
+        HALT
+    """),
+    ("bank_conflict_pairs", """
+        LANEID r0
+        LDI r1, 1
+        SHR r2, r0, r1
+        LDI r3, 0x11
+        ST  r3, r2
+        LD  r4, r2
+        HALT
+    """),
+    ("barrier_simple", """
+        NOP
+        BAR
+        NOP
+        HALT
+    """),
+    ("barrier_memory", """
+        LDI r0, 1
+        ST  r0, r0
+        BAR
+        LD  r1, r0
+        HALT
+    """),
+    ("divergent_store", """
+        LANEID r0
+        SPLIT r0
+        LDI r1, 0x77
+        ST  r1, r0
+        JOIN
+        LD  r2, r0
+        HALT
+    """),
 ]

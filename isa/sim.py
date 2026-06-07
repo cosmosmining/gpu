@@ -258,7 +258,8 @@ class Simulator:
             self._mem_access(w, f, active, store=True)
             retire()
         elif mnem == "BAR":
-            w.barriered = True                    # waits; retire happens on release
+            self.trace.append((idx, execpc, "BAR", M))   # observability; retires at release
+            w.barriered = True
         else:  # pragma: no cover
             trap(TRAP_ILLEGAL)
 

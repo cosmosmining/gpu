@@ -1,0 +1,13 @@
+# WarpOne formal proof (Phase 4 + Phase 5) via yosys's built-in SAT temporal induction.
+# Properties live in rtl/core/warpone_core.v under `ifdef FORMAL`:
+#   - per-warp mask-stack safety: sp <= DEPTH always (no silent over/underflow corruption)
+#   - scheduler no-deadlock: while running with a live warp, the core issues or releases
+# Assumption: reset asserted in the initial state ($initstate) so registers are defined.
+# We use yosys `sat` (minisat) rather than smtbmc+z3 because the local z3 4.8.12 hangs on
+# this model at step 0 (solver pathology); see DECISIONS D5.2. Run from the repo root.
+read_verilog -sv -formal -DFORMAL -I rtl/core rtl/core/warpone_core.v
+prep -top warpone_core
+memory_map
+opt -full
+# -tempinduct: unbounded proof by temporal (k-)induction; -verify: nonzero exit on failure.
+sat -tempinduct -prove-asserts -set-assumes -seq 20 -verify

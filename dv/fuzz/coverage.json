@@ -2,10 +2,11 @@
   "programs": 10005,
   "n_random": 10000,
   "seed": 1,
+  "warps": 2,
   "mismatches": 0,
   "coverage_pct": 100.0,
-  "coverage_hit": 24,
-  "coverage_total": 24,
+  "coverage_hit": 29,
+  "coverage_total": 29,
   "bins": {
     "op_NOP": true,
     "op_HALT": true,
@@ -22,6 +23,9 @@
     "op_JMP": true,
     "op_SPLIT": true,
     "op_JOIN": true,
+    "op_LD": true,
+    "op_ST": true,
+    "op_BAR": true,
     "depth_0": true,
     "depth_1": true,
     "depth_2": true,
@@ -30,6 +34,8 @@
     "trap_illegal": true,
     "trap_overflow": true,
     "trap_underflow": true,
-    "mask_zero": true
+    "mask_zero": true,
+    "bank_conflict": true,
+    "barrier_release": true
   }
 }

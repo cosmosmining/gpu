@@ -35,7 +35,7 @@ class Gen:
     def _reg(self):
         return f"r{self.rng.randrange(self.regs)}"
 
-    def random_program(self, allow_jmp=True):
+    def random_program(self, allow_jmp=True, allow_p1=True):
         rng = self.rng
         body_len = rng.randint(3, 22)
         instrs = []          # (mnem, [ops], is_jmp_placeholder)
@@ -51,6 +51,8 @@ class Gen:
                 opts += ["JOIN", "JOIN"]
             if allow_jmp:
                 opts += ["JMP"]
+            if allow_p1:
+                opts += ["LD", "ST", "BAR"]
             m = rng.choice(opts)
             if m == "LDI":
                 instrs.append(("LDI", [self._reg(), str(rng.randrange(256))], False))
@@ -62,6 +64,12 @@ class Gen:
                 instrs.append(("NOP", [], False))
             elif m in P0_RRR:
                 instrs.append((m, [self._reg(), self._reg(), self._reg()], False))
+            elif m == "LD":
+                instrs.append(("LD", [self._reg(), self._reg()], False))
+            elif m == "ST":
+                instrs.append(("ST", [self._reg(), self._reg()], False))
+            elif m == "BAR":
+                instrs.append(("BAR", [], False))
             elif m == "SPLIT":
                 instrs.append(("SPLIT", [self._reg()], False))
                 depth += 1
