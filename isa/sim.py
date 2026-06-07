@@ -289,6 +289,8 @@ class Simulator:
             "regs": [[list(lane) for lane in w.regs] for w in self.warps],
             "scratch": list(self.scratch),
             "pc": [w.pc for w in self.warps],
+            "mask": [w.mask for w in self.warps],
+            "sp": [len(w.dstack) for w in self.warps],
             "halted": [w.halted for w in self.warps],
             "trapped": [(w.trapped, w.trap_code) for w in self.warps],
             "perf": self.perf.as_dict(),

@@ -140,9 +140,10 @@ def check_rtl_compile():
         for fn in files:
             if fn.endswith((".v", ".sv")):
                 srcs.append(os.path.join(base, fn))
+    incdir = os.path.join(ROOT, "rtl", "core")
     with tempfile.TemporaryDirectory() as td:
         out = os.path.join(td, "a.out")
-        cmd = [iv, "-g2012", "-Wall", "-o", out] + srcs
+        cmd = [iv, "-g2012", "-Wall", "-I", incdir, "-s", "tt_um_warpone", "-o", out] + srcs
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
             fail("iverilog compile failed:\n" + (r.stderr or r.stdout))

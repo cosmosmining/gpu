@@ -5,28 +5,28 @@
 > automatically, committing a gate report at each, quality gates kept immutable.
 
 ## Current phase
-**Phase 2 — P0 RTL + lockstep** (in progress). Phases 0–1 complete (gates met).
+**Phase 3 — Fuzz closure** (next). Phases 0–2 complete (gates met).
 
 ## Last results
-- **Phase 1 COMPLETE.** ISA frozen at `isa/ISA.yaml` **v1.0.0** (21 instructions, 5-bit
-  opcode, reserved 0x15–0x1F → trap). Assembler (`isa/asm.py`) + golden simulator
-  (`isa/sim.py`) derive decode tables from it. **Compliance 12/12** on the sim
-  (`make compliance`). `docs/SPEC.md` complete incl. the cycle-by-cycle worked
-  divergence example (gate item) + 4-stage pipeline proposal w/ timing justification.
-  `docs/VPLAN.md` maps every P0 feature → named test → coverage point.
+- **Phase 2 COMPLETE.** `warpone_core` (P0, single-cycle-per-instruction) + `tt_um_warpone`
+  wrapper. Decoder generated from ISA.yaml. **Lockstep 25/25 kernels bit-exact** RTL vs
+  `isa/sim.py` (`make sim`) — all divergence depths 0–4, all-lanes-inactive, both traps,
+  ALU wraps, perf counters. Lint clean (verilator + verible). **882 flops** (I-mem 512 +
+  RF 256 + counters 82 + stack/ctrl ~32); within budget.
+- Phase 1: ISA v1.0.0 frozen; compliance 12/12 on sim.
 - Phase 0: scaffold; smoke + lint green local + CI.
 
 ## Gate status
 - **Phase 0** — `make smoke` local+CI: **MET**.
-- **Phase 1** — ISA frozen + compliance passes on sim: **MET** (12/12; ISA v1.0.0 frozen
-  under operator delegation D-DELEG).
-- **Phase 2** — 20 directed kernels retire bit-exact RTL vs sim; lint clean: _in progress_.
+- **Phase 1** — ISA frozen + compliance on sim: **MET** (12/12).
+- **Phase 2** — ≥20 kernels bit-exact RTL vs sim + lint clean: **MET** (25/25).
+- **Phase 3** — ≥10k constrained-random programs, 0 mismatches, ≥95% func coverage: _next_.
 
 ## Next actions
-1. Phase 2: build P0 RTL module-by-module (decoder generated from ISA.yaml; datapath/
-   ALU; per-warp state + divergence mask stack; register file; I-mem; SPI→APB3→CSR).
-2. cocotb lockstep bench (RTL vs `isa/sim.py`), ≥20 directed kernels bit-exact.
-3. Keep lint clean; update METRICS (flops/block). Commit gate; continue to Phase 3.
+1. Phase 3: legal-by-construction random program generator (balanced SPLIT/JOIN, bounded,
+   in-range), reusing the lockstep comparator; run ≥10k programs; functional coverage.
+2. Phase 4: SymbiYosys formal (mask stack, scheduler, decode completeness, write-port).
+3. Phase 5: P1 (2nd warp + scheduler, scratchpad LD/ST + conflicts, BAR, debug); re-close 3–4.
 
 ## Toolchain
 Local: python3.11, iverilog 12.0, verilator 5.020, yosys 0.33, verible v0.0-4061,

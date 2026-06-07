@@ -32,10 +32,12 @@ def main():
     rc = 0
     deferred = []
 
+    incdir = os.path.join(RTL_DIR, "core")
     verilator = shutil.which("verilator")
     if verilator:
         # Top module given so verilator resolves the design; -Wall for strictness.
-        cmd = [verilator, "--lint-only", "-Wall", "--top-module", "tt_um_warpone"] + srcs
+        cmd = [verilator, "--lint-only", "-Wall", f"-I{incdir}",
+               "--top-module", "tt_um_warpone"] + srcs
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
             print("--- verilator --lint-only: ERRORS ---")
@@ -48,7 +50,11 @@ def main():
 
     verible = shutil.which("verible-verilog-lint")
     if verible:
-        r = subprocess.run([verible] + srcs, capture_output=True, text=True)
+        rules = os.path.join(ROOT, "verible.rules")
+        cmd_v = [verible]
+        if os.path.isfile(rules):
+            cmd_v.append(f"--rules_config={rules}")
+        r = subprocess.run(cmd_v + srcs, capture_output=True, text=True)
         if r.returncode != 0:
             print("--- verible-verilog-lint: findings ---")
             print(r.stdout or r.stderr)

@@ -1,0 +1,7 @@
+# WarpOne Verible lint rule configuration (see DECISIONS D2.3).
+# We keep Verible's substantive rules (always_comb/always_ff, no implicit nets, case
+# completeness, etc.) and disable only a few opinionated *style* rules that conflict with
+# conventional, correct RTL — so "lint-clean" stays meaningful rather than cosmetic.
+-parameter-name-style                 # ALL_CAPS localparams (OP_*, A_*, TRAP_*) are standard
+-unpacked-dimensions-range-ordering   # [0:N-1] memory/array declarations are standard
+-explicit-parameter-storage-type      # untyped `parameter X = 4` is standard Verilog-2001

@@ -12,6 +12,42 @@
   no deleted failing tests. I still stop and ask only on a true blocker I cannot resolve
   reasonably. ISA frozen at v1.0.0 under this delegation.
 
+## 2026-06-07 — Phase 2: P0 RTL + lockstep
+
+- **D2.1 Host interface is a parallel CSR shim (for now).** `warpone_core` exposes a
+  simple synchronous 16-bit CSR backend; `tt_um_warpone` maps it to TT pins (pin map in
+  INTEGRATION.md). Spec §7 calls for SPI→APB3→PeakRDL; that front-end can be added later
+  without touching the core or the CSR map. Deviation logged here; CSR map preserved in
+  `regs/warpone.rdl`. (This defines the pin map — normally a stop-and-ask item; proceeding
+  under operator delegation D-DELEG, map documented + provisional.)
+
+- **D2.2 Verilator UNUSEDPARAM waiver scoped to the generated include only.** P1/P2 opcode
+  constants (and NOP) in `warpone_decode.vh` aren't all referenced until their phase;
+  `lint_off/on UNUSEDPARAM` wraps only the `\`include` (inline comment present). Removed
+  when the ops are implemented.
+
+- **D2.3 Curated Verible ruleset (`verible.rules`).** Keep substantive rules (always_comb/
+  always_ff, case completeness, implicit nets, etc.); disable three opinionated *style*
+  rules that conflict with standard RTL: parameter-name-style (ALL_CAPS params),
+  unpacked-dimensions-range-ordering ([0:N-1]), explicit-parameter-storage-type. This is
+  the OpenTitan-style approach (curate, don't blanket-disable).
+
+- **D2.4 Single-cycle-per-instruction core (not pipelined yet).** The spec leaves staging
+  to me. A single-issue core that retires one instruction per clock mirrors `sim._exec_one`
+  exactly → trivially bit-exact lockstep, fewer flops (no pipeline registers — flops are
+  the scarce resource), and it demonstrates every control mechanism (divergence stack,
+  scheduler, counters), which is the project's point (throughput is not). The 4-stage
+  pipeline in SPEC §3 becomes a Phase 7 timing option if Fmax needs it; the lockstep
+  contract (architectural retired state) is pipeline-independent.
+
+- **D2.5 Lockstep observes state through the real CSR/debug path** (DBG_SEL/RDATA, DBG_PC,
+  STATUS, PERF), not hierarchical force — so the bench also validates the host interface.
+
+- **D2.6 P0 RTL traps on unimplemented opcodes.** LD/ST/BAR/MUL/SETP/SEL (and reserved)
+  trap as illegal in P0 (X-free, satisfies decode completeness). The sim implements them
+  fully; P0 lockstep programs use only implemented opcodes, so no divergence. P1/P2 RTL
+  removes the trap for those ops at their phase.
+
 ## 2026-06-07 — Phase 1: ISA freeze + toolchain + spec
 
 - **D1.1 Encoding.** 16-bit, 5-bit opcode `[15:11]`, three 3-bit reg fields

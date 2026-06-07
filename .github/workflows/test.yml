@@ -18,10 +18,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y iverilog
           python -m pip install --upgrade pip
-          pip install pyyaml
+          pip install pyyaml cocotb
       - name: make smoke
         run: make smoke
       - name: make compliance
         run: make compliance
+      - name: make sim (RTL-vs-sim lockstep)
+        run: make sim
       - name: make tools (report)
         run: make tools

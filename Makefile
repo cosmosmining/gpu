@@ -12,7 +12,7 @@ RTL_SRCS := $(shell find $(ROOT)/rtl -name '*.v' -o -name '*.sv' 2>/dev/null)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help tools smoke lint compliance sim fuzz regress formal cov synth dft harden sweep predict isa clean
+.PHONY: help tools decoder smoke lint compliance sim fuzz regress formal cov synth dft harden sweep predict isa clean
 
 help: ## Show this help
 	@echo "WarpOne make targets:"
@@ -22,24 +22,27 @@ help: ## Show this help
 tools: ## Detect installed toolchain (have/missing report)
 	@$(PY) $(ROOT)/scripts/tools.py
 
-smoke: ## Fast structural + ISA-parse + RTL-compile sanity (Phase 0 gate)
+decoder: ## regenerate the RTL opcode include from isa/ISA.yaml
+	@$(PY) $(ROOT)/scripts/gen_decoder.py
+
+smoke: decoder ## Fast structural + ISA-parse + RTL-compile sanity (Phase 0 gate)
 	@$(PY) $(ROOT)/scripts/smoke.py
 
-lint: ## RTL lint: verilator --lint-only (+ Verible if present); 0 errors required
+lint: decoder ## RTL lint: verilator --lint-only (+ Verible if present); 0 errors required
 	@$(PY) $(ROOT)/scripts/lint.py
 
 compliance: ## ISA compliance suite on the simulator (Phase 1 gate)
 	@$(PY) $(ROOT)/isa/compliance/test_compliance.py
 
 # ---- targets that come online in later phases (scaffolded) --------------------
-sim: ## [Phase 2+] cocotb lockstep sim (RTL vs isa/sim.py)
-	@echo "[stub] sim: implemented in Phase 2 (lockstep cocotb bench)."
+sim: decoder ## cocotb lockstep sim (RTL vs isa/sim.py)
+	@$(MAKE) -C $(ROOT)/dv/cocotb
 
 fuzz: ## [Phase 3+] constrained-random program campaign, lockstep
 	@echo "[stub] fuzz: implemented in Phase 3 (>=10k legal-by-construction programs)."
 
-regress: compliance ## run the regression (compliance now; + RTL lockstep from Phase 2)
-	@echo "regress: compliance done; RTL lockstep suite is added in Phase 2."
+regress: compliance sim ## run the full regression: ISA compliance + RTL lockstep
+	@echo "regress: compliance + RTL lockstep complete."
 
 formal: ## [Phase 4+] SymbiYosys properties (mask stack, scheduler, decode, write-port)
 	@echo "[stub] formal: implemented in Phase 4 (SymbiYosys .sby properties)."
@@ -62,7 +65,7 @@ sweep: ## [Phase 7] parallel DSE (pipeline x utilization x clock) -> Pareto
 predict: ## [Phase 7] emit pre-registered predictions vs sim
 	@echo "[stub] predict: implemented in Phase 7 (freeze PREDICTIONS.md)."
 
-isa: ## validate ISA consumers + run compliance (RTL decoder gen added Phase 2)
+isa: decoder ## regenerate consumers (decoder + asm/sim self-test) + run compliance
 	@$(PY) $(ROOT)/isa/asm.py
 	@$(PY) $(ROOT)/isa/sim.py
 	@$(PY) $(ROOT)/isa/compliance/test_compliance.py
