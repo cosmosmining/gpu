@@ -8,6 +8,6 @@ VERILOG_SOURCES := $(ROOT)/rtl/core/warpone_core.v
 COMPILE_ARGS    += -I$(ROOT)/rtl/core -g2012
 
 TOPLEVEL := warpone_core
-MODULE   := test_lockstep
+MODULE   ?= test_lockstep
 
 include $(shell cocotb-config --makefiles)/Makefile.sim

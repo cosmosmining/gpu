@@ -84,6 +84,8 @@ class Simulator:
         self.perf = Perf()
         self.trace = []
         self.deadlock = False
+        self.max_depth = 0          # peak divergence-stack depth reached (coverage)
+        self.mask_zero = False      # an instruction executed with all lanes inactive (coverage)
 
     # -- program load --------------------------------------------------------
     def load_program(self, words, warp_pcs=None, active_warps=None):
@@ -169,6 +171,8 @@ class Simulator:
             w.retired += 1
             self.perf.retired += 1
             self.perf.active_lane_sum += popcount(M)
+            if popcount(M) == 0:
+                self.mask_zero = True
             self.trace.append((idx, execpc, mnem or "ILL%02x" % f["op"], M))
             if halt:
                 w.halted = True
@@ -237,6 +241,7 @@ class Simulator:
                 trap(TRAP_OVERFLOW)
             else:
                 w.dstack.append(M)
+                self.max_depth = max(self.max_depth, len(w.dstack))
                 self.perf.divergence_pushes += 1
                 retire()                          # counts pre-narrow M, advances PC
                 w.mask = M & t                    # narrow AFTER retire
@@ -295,6 +300,8 @@ class Simulator:
             "trapped": [(w.trapped, w.trap_code) for w in self.warps],
             "perf": self.perf.as_dict(),
             "deadlock": self.deadlock,
+            "max_depth": self.max_depth,
+            "mask_zero": self.mask_zero,
         }
 
     def utilization(self):

@@ -12,6 +12,23 @@
   no deleted failing tests. I still stop and ask only on a true blocker I cannot resolve
   reasonably. ISA frozen at v1.0.0 under this delegation.
 
+## 2026-06-07 — Phase 3: fuzz closure
+
+- **D3.1 Legal-by-construction generator** (`dv/fuzz/gen.py`): P0 opcodes only; SPLIT only
+  when depth<4 with reserved closing slots; every SPLIT statically matched by a JOIN; JMP
+  targets strictly forward (post-pass) so PC is monotonic → guaranteed termination. A
+  forward JMP may dynamically skip a SPLIT/JOIN → deterministic trap, a valid lockstep
+  case (kept; adds coverage). 5 directed seed programs guarantee the
+  overflow/underflow/illegal/mask-zero/max-depth bins are reachable.
+
+- **D3.2 Coverage model = 24 functional bins** (15 opcodes retired, divergence depths 0–4,
+  3 trap types, all-lanes-inactive), tallied from the simulator during the lockstep run.
+  Result: 24/24 = 100% over the campaign. Bins named in docs/VPLAN.md.
+
+- **D3.3 Fuzz runs the real RTL-vs-sim lockstep** through cocotb/icarus (not sim-only).
+  10,000 random + 5 seeds in ~3 min single-process; shardable across seeds if needed
+  (parallelism is free). Report committed to `dv/fuzz/coverage.json`.
+
 ## 2026-06-07 — Phase 2: P0 RTL + lockstep
 
 - **D2.1 Host interface is a parallel CSR shim (for now).** `warpone_core` exposes a

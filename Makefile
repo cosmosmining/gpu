@@ -38,17 +38,17 @@ compliance: ## ISA compliance suite on the simulator (Phase 1 gate)
 sim: decoder ## cocotb lockstep sim (RTL vs isa/sim.py)
 	@$(MAKE) -C $(ROOT)/dv/cocotb
 
-fuzz: ## [Phase 3+] constrained-random program campaign, lockstep
-	@echo "[stub] fuzz: implemented in Phase 3 (>=10k legal-by-construction programs)."
+fuzz: decoder ## constrained-random lockstep campaign (FUZZ_N=10000 default; FUZZ_SEED=1)
+	@FUZZ_N=$${FUZZ_N:-10000} FUZZ_SEED=$${FUZZ_SEED:-1} $(MAKE) -C $(ROOT)/dv/cocotb MODULE=test_fuzz
+
+cov: ## show the latest fuzz functional-coverage report
+	@$(PY) -c "import json;d=json.load(open('$(ROOT)/dv/fuzz/coverage.json'));print('coverage %.1f%% (%d/%d), %d programs, %d mismatches'%(d['coverage_pct'],d['coverage_hit'],d['coverage_total'],d['programs'],d['mismatches']));[print('  MISS',k) for k,v in d['bins'].items() if not v]"
 
 regress: compliance sim ## run the full regression: ISA compliance + RTL lockstep
 	@echo "regress: compliance + RTL lockstep complete."
 
 formal: ## [Phase 4+] SymbiYosys properties (mask stack, scheduler, decode, write-port)
 	@echo "[stub] formal: implemented in Phase 4 (SymbiYosys .sby properties)."
-
-cov: ## [Phase 3+] functional coverage report vs docs/VPLAN.md
-	@echo "[stub] cov: implemented in Phase 3 (functional coverage >=95%)."
 
 synth: ## [Phase 5+] Yosys synthesis + cell/flop report
 	@echo "[stub] synth: implemented in Phase 5 (Yosys; flop report -> METRICS.md)."

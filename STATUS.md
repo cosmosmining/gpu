@@ -5,28 +5,29 @@
 > automatically, committing a gate report at each, quality gates kept immutable.
 
 ## Current phase
-**Phase 3 — Fuzz closure** (next). Phases 0–2 complete (gates met).
+**Phase 4 — Formal** (next). Phases 0–3 complete (gates met).
 
 ## Last results
-- **Phase 2 COMPLETE.** `warpone_core` (P0, single-cycle-per-instruction) + `tt_um_warpone`
-  wrapper. Decoder generated from ISA.yaml. **Lockstep 25/25 kernels bit-exact** RTL vs
-  `isa/sim.py` (`make sim`) — all divergence depths 0–4, all-lanes-inactive, both traps,
-  ALU wraps, perf counters. Lint clean (verilator + verible). **882 flops** (I-mem 512 +
-  RF 256 + counters 82 + stack/ctrl ~32); within budget.
-- Phase 1: ISA v1.0.0 frozen; compliance 12/12 on sim.
-- Phase 0: scaffold; smoke + lint green local + CI.
+- **Phase 3 COMPLETE.** Legal-by-construction generator (`dv/fuzz/gen.py`); **10,005
+  programs (10k random + 5 seeds), 0 RTL-vs-sim mismatches, functional coverage 100%
+  (24/24 bins)** in ~3 min (`make fuzz`; report in `dv/fuzz/coverage.json`).
+- Phase 2: P0 RTL; lockstep 25/25 bit-exact; 882 flops; lint clean.
+- Phase 1: ISA v1.0.0 frozen; compliance 12/12. Phase 0: scaffold; smoke+lint CI.
 
 ## Gate status
-- **Phase 0** — `make smoke` local+CI: **MET**.
-- **Phase 1** — ISA frozen + compliance on sim: **MET** (12/12).
-- **Phase 2** — ≥20 kernels bit-exact RTL vs sim + lint clean: **MET** (25/25).
-- **Phase 3** — ≥10k constrained-random programs, 0 mismatches, ≥95% func coverage: _next_.
+- **Phase 0** — smoke local+CI: **MET**.
+- **Phase 1** — ISA frozen + compliance: **MET** (12/12).
+- **Phase 2** — ≥20 kernels bit-exact + lint: **MET** (25/25).
+- **Phase 3** — ≥10k fuzz @ 0 mismatch + ≥95% cov: **MET** (10005, 0, 100%).
+- **Phase 4** — SymbiYosys proofs (mask stack, scheduler, decode completeness, write-port): _next_.
 
 ## Next actions
-1. Phase 3: legal-by-construction random program generator (balanced SPLIT/JOIN, bounded,
-   in-range), reusing the lockstep comparator; run ≥10k programs; functional coverage.
-2. Phase 4: SymbiYosys formal (mask stack, scheduler, decode completeness, write-port).
-3. Phase 5: P1 (2nd warp + scheduler, scratchpad LD/ST + conflicts, BAR, debug); re-close 3–4.
+1. Phase 4: SymbiYosys properties — mask-stack no over/underflow (or trap), decode
+   completeness (no X / every encoding executes-or-traps), register write-port arbitration,
+   scheduler no-deadlock+fairness (the scheduler proof gains teeth once P1's 2nd warp lands).
+2. Phase 5: P1 — 2nd warp + round-robin scheduler, banked scratchpad LD/ST + conflict
+   counter, BAR, debug halt/resume/step; re-close fuzz + formal on the expanded design.
+3. Phase 6 DFT · Phase 7 harden+DSE+predictions · Phase 8 release.
 
 ## Toolchain
 Local: python3.11, iverilog 12.0, verilator 5.020, yosys 0.33, verible v0.0-4061,
