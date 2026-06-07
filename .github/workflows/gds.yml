@@ -1,0 +1,17 @@
+name: gds
+# Signoff GDS via the official Tiny Tapeout GitHub Action. Wired up in Phase 7; manual
+# trigger placeholder until the design is ready to harden.
+on:
+  workflow_dispatch:
+
+jobs:
+  gds:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder
+        run: |
+          echo "GDS signoff is wired to the official Tiny Tapeout GDS action in Phase 7."
+          echo "Until then this job is an intentional no-op (see DECISIONS.md D0.7)."
+      # Phase 7 replaces the step above with:
+      #   uses: TinyTapeout/tt-gds-action@tt10   (or the shuttle-matching tag)

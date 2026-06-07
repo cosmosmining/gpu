@@ -1,0 +1,22 @@
+name: formal
+# SymbiYosys properties (mask stack, scheduler, decode completeness, write-port). Comes
+# online in Phase 4; manual trigger until then.
+on:
+  workflow_dispatch:
+
+jobs:
+  formal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Yosys + SymbiYosys
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yosys
+          python -m pip install --upgrade pip
+          # SymbiYosys (sby) + solvers are added when Phase 4 lands.
+      - name: make formal
+        run: make formal

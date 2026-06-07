@@ -1,0 +1,48 @@
+# WarpOne ISA — SINGLE SOURCE OF TRUTH (engineering standard #2).
+#
+# The RTL decoder tables, the assembler (isa/asm.py), and the instruction-accurate
+# simulator (isa/sim.py) are ALL derived from this file. When RTL and the simulator
+# disagree, THIS FILE arbitrates. The simulator is NEVER edited to make failing RTL
+# pass. Changes after freeze require operator approval + a version bump + regeneration
+# of all three consumers (`make isa`).
+#
+# STATUS: DRAFT — NOT FROZEN.
+# The instruction set is defined and FROZEN in Phase 1 (operator-approved). Phase 0
+# carries metadata + datapath shape only, so tooling can validate structure without
+# preempting the ISA-freeze gate.
+
+isa:
+  name: WarpOne
+  version: 0.1.0-draft
+  frozen: false
+  description: >
+    Minimal but architecturally honest 4-lane SIMT core ISA. 16-bit fixed-width
+    instructions over an 8-bit datapath, with structured SPLIT/JOIN divergence
+    handled by a 4-deep per-warp mask stack.
+
+datapath:
+  lanes: 4
+  width_bits: 8
+  regs_per_lane: 8
+  warps: 2
+  imem_entries: 32        # P0 baseline; may grow to 64 in P1 if area allows (cap 64)
+  instr_width_bits: 16
+  div_stack_depth: 4
+
+encoding:
+  instr_width_bits: 16
+  # Field layout (opcode width, register/operand fields, immediate sizes) is finalized
+  # at ISA freeze in Phase 1. Placeholder until then.
+  format: TBD-phase1
+  endianness: big         # CSR I-mem window byte order; confirm at freeze
+
+# Encodings + semantics annotations land here in Phase 1; then asm/sim/decoder
+# regenerate from this map via `make isa`.
+instructions: {}
+
+# Roadmap ONLY (these are not encodings) — the feature ladder from the spec, recorded
+# here for reference so the Phase 1 freeze has a target. Implement strictly in order.
+planned:
+  P0: [NOP, HALT, LDI, MOV, ADD, SUB, AND, OR, XOR, SHL, SHR, LANEID, JMP, SPLIT, JOIN]
+  P1: [LD, ST, BAR]
+  P2: [MUL, SETP, SEL]

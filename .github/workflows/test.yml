@@ -1,0 +1,25 @@
+name: test
+# Phase 0 gate (CI half): `make smoke` must pass. Grows to lockstep sim in Phase 2.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+          python -m pip install --upgrade pip
+          pip install pyyaml
+      - name: make smoke
+        run: make smoke
+      - name: make tools (report)
+        run: make tools

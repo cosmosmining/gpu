@@ -1,0 +1,35 @@
+name: lint
+# Zero lint errors required at every commit (engineering standard #5).
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install verilator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator
+      - name: Install Verible (best-effort)
+        continue-on-error: true
+        run: |
+          set -e
+          # Verible ships GitHub *pre*-releases (so /releases/latest 404s) and the
+          # unauthenticated API is rate-limited; read the newest tag from the Atom feed
+          # (no auth, no rate limit) and download the static asset directly. See D0.3a.
+          tag=$(curl -sL https://github.com/chipsalliance/verible/releases.atom \
+            | python3 -c "import sys,re; m=re.search(r'releases/tag/([^\"<]+)', sys.stdin.read()); print(m.group(1) if m else '')")
+          test -n "$tag"
+          url="https://github.com/chipsalliance/verible/releases/download/${tag}/verible-${tag}-linux-static-x86_64.tar.gz"
+          curl -fL "$url" -o /tmp/verible.tgz
+          mkdir -p "$HOME/verible" && tar -xzf /tmp/verible.tgz -C "$HOME/verible" --strip-components=1
+          echo "$HOME/verible/bin" >> "$GITHUB_PATH"
+      - name: make lint
+        run: make lint

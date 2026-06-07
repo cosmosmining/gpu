@@ -1,0 +1,25 @@
+// WarpOne control/status registers — SystemRDL (single source for the CSR block).
+// PeakRDL generates the APB3 register block + address map + docs from this file.
+//
+// PHASE 0 SCAFFOLD: minimal valid SystemRDL so the toolchain has a target. The full
+// register map (I-mem write window, launch/halt control, status, debug peek, perf
+// counters) is authored in Phase 1 alongside docs/INTEGRATION.md. Do not wire RTL to
+// these until the map is frozen.
+
+addrmap warpone {
+    name = "WarpOne CSR block";
+    desc = "Control/status registers for the WarpOne SIMT core (APB3).";
+
+    reg {
+        name = "Identification";
+        desc = "Read-only IP identification / version.";
+        default sw = r;
+        default hw = r;
+        field { desc = "IP id, ASCII 'WO'."; } ID[31:16] = 0x574F;
+        field { desc = "ISA major version.";  } VER_MAJOR[15:8] = 0;
+        field { desc = "ISA minor version.";  } VER_MINOR[7:0]  = 1;
+    } ID_REG @ 0x00;
+
+    // Phase 1 adds: CTRL (launch/halt), STATUS, IMEM_ADDR/IMEM_DATA window,
+    // DEBUG (halt/resume/step, PC/reg peek), and the performance counters.
+};

@@ -1,0 +1,26 @@
+name: fuzz
+# Constrained-random lockstep campaign (>=10k programs, 0 mismatches). Comes online in
+# Phase 3; manual trigger until then so it doesn't gate pre-Phase-3 commits.
+on:
+  workflow_dispatch:
+    inputs:
+      programs:
+        description: "number of programs"
+        default: "10000"
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog verilator
+          python -m pip install --upgrade pip
+          pip install pyyaml cocotb pytest numpy
+      - name: make fuzz
+        run: make fuzz
