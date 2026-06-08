@@ -18,6 +18,7 @@
 | 2026-06-07 | (phase6-8) | 6-8 | 10005/10005 | 100.0 | 1891 | pending | pending | infra: TT info.yaml+gds.yml (TT action), DFT flow (Fault, pending), datasheet+kernels; arch predictions frozen (lockstep 33/33). WNS/ATPG pending EDA tools (CI) |
 | 2026-06-07 | (p2) | 7 | 10005/10005 | 100.0 (32/32) | 1891 | pending | pending | P2 implemented (MUL/SETP/SEL): full ISA live; lockstep 36/36; fuzz 10k 0 mismatch; dotprod=26, parmax=3 verified. 15043 generic cells (4 MULs) — area watch |
 | 2026-06-08 | (itermul) | 7 | 10005/10005 | 100.0 (32/32) | 1895 | pending | pending | MUL -> iterative-shared (1 multiplier, 4-cycle); cycle-accurate lockstep 36/36 + fuzz 10k/0; +RP2040 firmware. 1 $mul (vs 4); 16815 generic cells (mux artifact; real area needs PDK) |
+| 2026-06-08 | (gds-run1) | 7 | 10005/10005 | 100.0 | 1895 | congested | pending | Phase 7 REAL sky130 P&R (LibreLane@ttsky26c) ran full flow; GRT-0116 congestion: design 565x576um vs 4x2 die 682x226um (~2.1x over) — see ERRATA E1 |
 
 ## Flop budget tracker (scarcest resource)
 Hard caps without operator approval:

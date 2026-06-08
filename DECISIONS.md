@@ -36,6 +36,18 @@
   Re-closure: lockstep **36/36** bit-exact, fuzz **10,005 × 2 warps, 0 mismatches, 100%
   coverage (32/32** incl. MUL/SETP/SEL**)**, formal still PROVEN.
 
+## 2026-06-08 — Phase 7: real sky130 P&R result (design over 4x2 budget)
+
+- **D7.2 The full design does not fit the 4x2 tile (measured).** LibreLane (tt-gds-action@
+  ttsky26c, pdk sky130A) ran the complete flow in CI and failed at global routing with
+  congestion (GRT-0116). Real numbers: placement area 565.55 x 576.27 um (~326k um2) vs the
+  4x2 die 682.64 x 225.76 um (~154k um2) — ~2.1x over, wrong aspect (576 um tall). The
+  variable-index read muxes over I-mem/RF/scratchpad across 2 warps dominate. The flow
+  itself is now fully wired and validated (synth -> FP -> place -> CTS -> route all ran);
+  the blocker is physical area. Resolution requires the area fallback ladder (down to
+  dropping the 2nd warp) to fit 4x2, OR a larger tile (relaxes the 4x2 hard constraint).
+  Per the working agreement (area >70%) this is an operator decision — asked.
+
 ## 2026-06-07 — Phases 6–8: infrastructure (gates require EDA tools beyond the dev container)
 
 - **D6.1 DFT (scan + ATPG) infrastructure, execution pending Fault.** The flow is scripted
