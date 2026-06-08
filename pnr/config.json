@@ -1,0 +1,7 @@
+{
+  "//": "WarpOne LibreLane hardening config for the Tiny Tapeout flow.",
+  "//": "DESIGN_NAME / VERILOG_FILES / DIE_AREA / FP_DEF_TEMPLATE / pins are auto-generated",
+  "//": "by tt-support-tools (user_config) and merged over this. 20 ns == 50 MHz target.",
+  "CLOCK_PERIOD": 20,
+  "CLOCK_PORT": "clk"
+}
