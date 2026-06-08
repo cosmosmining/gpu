@@ -20,11 +20,16 @@
   (decode completeness preserved; formal still proven). The golden sim already implemented
   these, so this is pure RTL catch-up verified in lockstep.
 
-- **D-P2.2 MUL is single-cycle (4 per-lane 8×8 multipliers), not iterative-shared.** Chosen
-  for a clean single-cycle lockstep (no MUL-timing modeling, `cycles` still matches the
-  sim). The spec's area-optimized iterative-shared multiplier is a hardening-time refinement;
-  if Phase 7 area/Fmax is tight, the fallback ladder drops P2 first (or swaps to iterative).
-  Cells rose 14420→15043 (+4 MULs); flops unchanged (1891, multipliers are combinational).
+- **D-P2.2 MUL: iterative-shared multiplier (spec design).** One 8×8 multiplier
+  time-multiplexed across the 4 lanes over LANES=4 cycles (lane 0 on the issue cycle,
+  lanes 1–3 on `mul_busy` cycles), via a small FSM (`mul_busy`/`mul_lane`/`mul_warp`, +4
+  flops → 1895). MUL is therefore multi-cycle; the sim models the same `+LANES-1` cycles
+  so `cycles` stays bit-exact (lockstep 36/36 incl. counters; fuzz 10k/0/100%; dotprod
+  21 HW-cycles). **Multiplier count 4→1** (confirmed: 1 `$mul`), the real sky130 area win.
+  NOTE: generic flattened cell count rose (15043→16815) — a generic-synth artifact (it
+  under-weights an 8×8 multiplier vs the lane-operand mux); the true area comparison needs
+  the sky130 PDK (unreachable here, D7.1), where 1 multiplier ≪ 4. The single-cycle 4-MUL
+  version was the earlier functional placeholder (git history); this is the spec-correct one.
 
 - **D-P2.3 Demos unlocked + verified.** `kernels/dotprod.asm` (Σ a·b = 26) and
   `kernels/parmax.asm` (max = 3) now run; predictions frozen in PREDICTIONS.md.

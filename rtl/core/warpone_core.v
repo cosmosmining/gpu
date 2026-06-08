@@ -60,6 +60,10 @@ module warpone_core #(
     reg             running, done, test_en;
     reg [CW-1:0]    c_ret, c_div, c_act, c_bank, c_cyc;
     reg             cur;                           // round-robin pointer (NWARPS=2 -> 1 bit)
+    // iterative-shared multiplier sequencer (one 8x8 MUL time-multiplexed over LANES cycles)
+    reg             mul_busy;
+    reg [1:0]       mul_lane;
+    reg             mul_warp;
 
     integer i, j, k;
 
@@ -70,8 +74,11 @@ module warpone_core #(
     // release when every non-halted warp is barriered (and >=1 non-halted exists)
     wire bar_release = any_nonhalted & (halted[0]|barriered[0]) & (halted[1]|barriered[1]);
     wire iw_valid = run0 | run1;
-    wire iw = cur ? (run1 ? 1'b1 : 1'b0)          // scan from cur (NWARPS=2)
-                  : (run0 ? 1'b0 : 1'b1);
+    wire sched_iw = cur ? (run1 ? 1'b1 : 1'b0)    // scan from cur (NWARPS=2)
+                        : (run0 ? 1'b0 : 1'b1);
+    // during an in-flight MUL the issuing-warp index is held to the multiplying warp
+    wire iw = mul_busy ? mul_warp : sched_iw;
+    wire [1:0] last_lane = LANES[1:0] - 2'd1;
 
     // ---- fetch / decode for the issuing warp -----------------------------
 `ifdef FORMAL
@@ -168,6 +175,11 @@ module warpone_core #(
     wire [1:0] pop_idx  = sp[iw][1:0] - 2'd1;
     wire do_issue = running & ~bar_release & iw_valid;
 
+    // One shared 8x8 multiplier, time-multiplexed across lanes: lane 0 on the issue cycle,
+    // lanes 1..LANES-1 on the following mul_busy cycles. mul_sel picks the current lane.
+    wire [1:0]       mul_sel  = mul_busy ? mul_lane : 2'd0;
+    wire [WIDTH-1:0] mul_prod = rf[iw][mul_sel][fb] * rf[iw][mul_sel][fc];
+
     // popcount of a 4-lane mask (barrier-release accounting)
     function automatic [2:0] popc(input logic [LANES-1:0] m);
         popc = {2'b0, m[0]} + {2'b0, m[1]} + {2'b0, m[2]} + {2'b0, m[3]};
@@ -197,6 +209,7 @@ module warpone_core #(
             for (i = 0; i < SCRATCH; i = i + 1) scratch[i] <= {WIDTH{1'b0}};
             imem_addr <= {PCW{1'b0}}; dsel <= 6'd0;
             running <= 1'b0; done <= 1'b0; test_en <= 1'b0; cur <= 1'b0;
+            mul_busy <= 1'b0; mul_lane <= 2'd0; mul_warp <= 1'b0;
             c_ret <= 0; c_div <= 0; c_act <= 0; c_bank <= 0; c_cyc <= 0;
         end else begin
             // -- host CSR writes --
@@ -214,6 +227,7 @@ module warpone_core #(
                             end
                             for (i = 0; i < SCRATCH; i = i + 1) scratch[i] <= {WIDTH{1'b0}};
                             running <= 1'b0; done <= 1'b0; cur <= 1'b0;
+                            mul_busy <= 1'b0; mul_lane <= 2'd0; mul_warp <= 1'b0;
                             c_ret <= 0; c_div <= 0; c_act <= 0; c_bank <= 0; c_cyc <= 0;
                         end
                         if (csr_wdata[0]) begin running <= 1'b1; done <= 1'b0; end  // launch
@@ -228,7 +242,23 @@ module warpone_core #(
 
             // -- scheduler step --
             if (running) begin
-                if (bar_release) begin
+                if (mul_busy) begin
+                    // iterative-shared MUL: write one lane's product per cycle; finish on the
+                    // last lane (retire once, advance pc + round-robin). One multiplier total.
+                    c_cyc <= c_cyc + 1'b1;
+`ifndef FORMAL
+                    if (mask[iw][mul_lane]) rf[iw][mul_lane][fa] <= mul_prod;
+`endif
+                    if (mul_lane == last_lane) begin
+                        mul_busy <= 1'b0;
+                        c_ret <= c_ret + 1'b1;
+                        c_act <= c_act + {{(CW-3){1'b0}}, popcnt};
+                        pc[iw] <= pc[iw] + 1'b1;
+                        cur <= ~iw;
+                    end else begin
+                        mul_lane <= mul_lane + 1'b1;
+                    end
+                end else if (bar_release) begin
                     // release clock: retire all non-halted barriered warps (not an issue)
                     if (rel0) begin barriered[0] <= 1'b0; pc[0] <= pc[0] + 1'b1; end
                     if (rel1) begin barriered[1] <= 1'b0; pc[1] <= pc[1] + 1'b1; end
@@ -236,71 +266,82 @@ module warpone_core #(
                     c_act <= c_act + act_rel;
                 end else if (iw_valid) begin
                     c_cyc <= c_cyc + 1'b1;                     // an issue
+                    if ((op == OP_MUL) && !is_trap) begin
+                        // start the shared multiplier: lane 0 now, lanes 1..LANES-1 follow;
+                        // retire / pc-advance / round-robin happen when the sequencer ends.
 `ifndef FORMAL
-                    // per-lane register / memory writes (data path). Excluded under FORMAL
-                    // so RF/scratch prune from the proof COI; proven properties (mask stack,
-                    // decode completeness, scheduler) are data-independent.
-                    for (lx = 0; lx < LANES; lx = lx + 1) begin
-                        if (mask[iw][lx]) begin
+                        if (mask[iw][0]) rf[iw][0][fa] <= mul_prod;   // mul_sel=0 while !mul_busy
+`endif
+                        mul_busy <= 1'b1;
+                        mul_lane <= 2'd1;
+                        mul_warp <= iw;
+                    end else begin
+`ifndef FORMAL
+                        // per-lane register / memory writes (data path). Excluded under FORMAL
+                        // so RF/scratch prune from the proof COI; proven properties are
+                        // data-independent.
+                        for (lx = 0; lx < LANES; lx = lx + 1) begin
+                            if (mask[iw][lx]) begin
+                                case (op)
+                                    OP_LDI:    rf[iw][lx][fa] <= imm8;
+                                    OP_MOV:    rf[iw][lx][fa] <= rf[iw][lx][fb];
+                                    OP_ADD:    rf[iw][lx][fa] <= rf[iw][lx][fb] + rf[iw][lx][fc];
+                                    OP_SUB:    rf[iw][lx][fa] <= rf[iw][lx][fb] - rf[iw][lx][fc];
+                                    OP_AND:    rf[iw][lx][fa] <= rf[iw][lx][fb] & rf[iw][lx][fc];
+                                    OP_OR:     rf[iw][lx][fa] <= rf[iw][lx][fb] | rf[iw][lx][fc];
+                                    OP_XOR:    rf[iw][lx][fa] <= rf[iw][lx][fb] ^ rf[iw][lx][fc];
+                                    OP_SHL:    rf[iw][lx][fa] <=
+                                                   rf[iw][lx][fb] << rf[iw][lx][fc][2:0];
+                                    OP_SHR:    rf[iw][lx][fa] <=
+                                                   rf[iw][lx][fb] >> rf[iw][lx][fc][2:0];
+                                    OP_LANEID: rf[iw][lx][fa] <= lx[WIDTH-1:0];
+                                    OP_LD:     rf[iw][lx][fa] <= scratch[maddr[lx]];
+                                    OP_SETP:   rf[iw][lx][fa] <=
+                                                   (rf[iw][lx][fb] < rf[iw][lx][fc]) ? 8'd1 : 8'd0;
+                                    OP_SEL:    rf[iw][lx][fa] <=
+                                                   (rf[iw][lx][fb] != 8'd0) ? rf[iw][lx][fc]
+                                                                            : rf[iw][lx][fa];
+                                    default:   ; // ST below; control ops no RF write
+                                endcase
+                            end
+                        end
+                        if (op == OP_ST) begin
+                            for (lx = 0; lx < LANES; lx = lx + 1)
+                                if (st_win[lx]) scratch[maddr[lx]] <= rf[iw][lx][fa];
+                        end
+`endif
+                        // control + counters + mask stack (for warp iw)
+                        if (is_trap) begin
+                            trapped[iw]  <= 1'b1;
+                            trapcode[iw] <= tcode;
+                            halted[iw]   <= 1'b1;
+                        end else if (op == OP_BAR) begin
+                            barriered[iw] <= 1'b1;             // wait; retire happens at release
+                        end else begin
+                            c_ret <= c_ret + 1'b1;
+                            c_act <= c_act + {{(CW-3){1'b0}}, popcnt};
+                            if (op == OP_LD || op == OP_ST)
+                                c_bank <= c_bank + {{(CW-3){1'b0}}, conflicts};
                             case (op)
-                                OP_LDI:    rf[iw][lx][fa] <= imm8;
-                                OP_MOV:    rf[iw][lx][fa] <= rf[iw][lx][fb];
-                                OP_ADD:    rf[iw][lx][fa] <= rf[iw][lx][fb] + rf[iw][lx][fc];
-                                OP_SUB:    rf[iw][lx][fa] <= rf[iw][lx][fb] - rf[iw][lx][fc];
-                                OP_AND:    rf[iw][lx][fa] <= rf[iw][lx][fb] & rf[iw][lx][fc];
-                                OP_OR:     rf[iw][lx][fa] <= rf[iw][lx][fb] | rf[iw][lx][fc];
-                                OP_XOR:    rf[iw][lx][fa] <= rf[iw][lx][fb] ^ rf[iw][lx][fc];
-                                OP_SHL:    rf[iw][lx][fa] <= rf[iw][lx][fb] << rf[iw][lx][fc][2:0];
-                                OP_SHR:    rf[iw][lx][fa] <= rf[iw][lx][fb] >> rf[iw][lx][fc][2:0];
-                                OP_LANEID: rf[iw][lx][fa] <= lx[WIDTH-1:0];
-                                OP_LD:     rf[iw][lx][fa] <= scratch[maddr[lx]];
-                                OP_MUL:    rf[iw][lx][fa] <= rf[iw][lx][fb] * rf[iw][lx][fc];
-                                OP_SETP:   rf[iw][lx][fa] <=
-                                               (rf[iw][lx][fb] < rf[iw][lx][fc]) ? 8'd1 : 8'd0;
-                                OP_SEL:    rf[iw][lx][fa] <=
-                                               (rf[iw][lx][fb] != 8'd0) ? rf[iw][lx][fc]
-                                                                        : rf[iw][lx][fa];
-                                default:   ; // ST handled below; control ops no RF write
-
+                                OP_HALT: halted[iw] <= 1'b1;
+                                OP_JMP:  pc[iw] <= addr6[PCW-1:0];
+                                OP_SPLIT: begin
+                                    dstk[iw][push_idx] <= mask[iw];
+                                    sp[iw]   <= sp[iw] + 1'b1;
+                                    mask[iw] <= mask[iw] & taken;
+                                    c_div    <= c_div + 1'b1;
+                                    pc[iw]   <= pc[iw] + 1'b1;
+                                end
+                                OP_JOIN: begin
+                                    sp[iw]   <= sp[iw] - 1'b1;
+                                    mask[iw] <= dstk[iw][pop_idx];
+                                    pc[iw]   <= pc[iw] + 1'b1;
+                                end
+                                default: pc[iw] <= pc[iw] + 1'b1; // NOP/LDI/MOV/ALU/LANEID/LD/ST
                             endcase
                         end
+                        cur <= ~iw;                            // round-robin advance
                     end
-                    if (op == OP_ST) begin
-                        for (lx = 0; lx < LANES; lx = lx + 1)
-                            if (st_win[lx]) scratch[maddr[lx]] <= rf[iw][lx][fa];
-                    end
-`endif
-                    // control + counters + mask stack (for warp iw)
-                    if (is_trap) begin
-                        trapped[iw]  <= 1'b1;
-                        trapcode[iw] <= tcode;
-                        halted[iw]   <= 1'b1;
-                    end else if (op == OP_BAR) begin
-                        barriered[iw] <= 1'b1;                 // wait; retire happens at release
-                    end else begin
-                        c_ret <= c_ret + 1'b1;
-                        c_act <= c_act + {{(CW-3){1'b0}}, popcnt};
-                        if (op == OP_LD || op == OP_ST)
-                            c_bank <= c_bank + {{(CW-3){1'b0}}, conflicts};
-                        case (op)
-                            OP_HALT: halted[iw] <= 1'b1;
-                            OP_JMP:  pc[iw] <= addr6[PCW-1:0];
-                            OP_SPLIT: begin
-                                dstk[iw][push_idx] <= mask[iw];
-                                sp[iw]   <= sp[iw] + 1'b1;
-                                mask[iw] <= mask[iw] & taken;
-                                c_div    <= c_div + 1'b1;
-                                pc[iw]   <= pc[iw] + 1'b1;
-                            end
-                            OP_JOIN: begin
-                                sp[iw]   <= sp[iw] - 1'b1;
-                                mask[iw] <= dstk[iw][pop_idx];
-                                pc[iw]   <= pc[iw] + 1'b1;
-                            end
-                            default: pc[iw] <= pc[iw] + 1'b1; // NOP/LDI/MOV/ALU/LANEID/LD/ST
-                        endcase
-                    end
-                    cur <= ~iw;                                // round-robin advance
                 end else begin
                     running <= 1'b0; done <= 1'b1;             // all warps halted
                 end
@@ -356,7 +397,7 @@ module warpone_core #(
     // progress every cycle: it issues an instruction or releases a barrier — it never
     // silently stalls with work pending. Combinational (no 16-bit-counter $past, which the
     // local z3 chokes on).
-    wire prog = do_issue | bar_release;
+    wire prog = do_issue | bar_release | mul_busy;
     always_ff @(posedge clk)
         if (rst_n && running && any_nonhalted) assert (prog);
     // NOTE: register/scratch write-port arbitration (store low-lane-wins => at most one

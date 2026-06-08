@@ -86,6 +86,7 @@ class Simulator:
         self.deadlock = False
         self.max_depth = 0          # peak divergence-stack depth reached (coverage)
         self.mask_zero = False      # an instruction executed with all lanes inactive (coverage)
+        self.mul_extra = 0          # extra HW cycles from the iterative-shared multiplier
 
     # -- program load --------------------------------------------------------
     def load_program(self, words, warp_pcs=None, active_warps=None):
@@ -154,7 +155,7 @@ class Simulator:
             self._exec_one(idx)
             rr = (idx + 1) % self.nwarps
             steps += 1
-        self.perf.cycles = steps
+        self.perf.cycles = steps + self.mul_extra
         return self.snapshot()
 
     # -- execute one instruction for warp idx --------------------------------
@@ -225,6 +226,8 @@ class Simulator:
                 else:  # SEL
                     r = y if x != 0 else w.regs[l][f["a"]]
                 w.regs[l][f["a"]] = r
+            if mnem == "MUL":
+                self.mul_extra += self.lanes - 1   # iterative-shared mult: LANES cycles total
             retire()
         elif mnem == "LANEID":
             for l in active:

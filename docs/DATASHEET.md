@@ -59,5 +59,6 @@ Each is bit-exact vs the golden simulator; pre-registered perf-counter values: s
 
 ## Limitations / errata
 See `docs/ERRATA.md`. Full ISA (P0/P1/P2) implemented and verified. RF and scratchpad sit
-exactly at their flop budgets; MUL is single-cycle (4 lane multipliers) — at hardening,
-evaluate area/Fmax and, if tight, apply the fallback ladder (drop P2 first / iterative MUL).
+exactly at their flop budgets. MUL uses **one shared 8×8 multiplier time-multiplexed across
+lanes over 4 cycles** (the spec's area design — 1 multiplier, not 4); cycle-accurate in
+lockstep. If Phase-7 utilization is still tight, the fallback ladder drops P2 first.

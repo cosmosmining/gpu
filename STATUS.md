@@ -9,11 +9,14 @@
 (≥95% ATPG, green GDS, frozen Fmax) require EDA tools (Fault, OpenROAD, sky130 PDK) not
 installable in the dev container — they run in CI / the operator's flow (DECISIONS D6.1/D7.1).
 
-## P2 (MUL/SETP/SEL) — DONE (full ISA live)
-Implemented the P2 ops (encodings were already frozen in v1.0.0). **Lockstep 36/36**,
-**fuzz 10,005×2-warp, 0 mismatch, 100% coverage (32/32)**, **formal still PROVEN**. Demos
-`dotprod` (Σa·b=26) and `parmax` (max=3) verified; predictions frozen. 1891 flops, 15043
-generic cells (+4 MULs — area watch at hardening; fallback ladder drops P2 first if tight).
+## P2 + firmware + iterative MUL — DONE
+- **P2 (MUL/SETP/SEL)** implemented (encodings were already frozen in v1.0.0); full ISA live.
+- **MUL = iterative-shared multiplier**: one 8×8 multiplier time-multiplexed over 4 cycles
+  (1 `$mul`, not 4 — the spec's area design). Multi-cycle, **cycle-accurate** vs sim.
+- **RP2040 firmware** (`fw/warpone.py`): upload/launch/readback/perf-dump (TT MicroPython).
+- Re-closure: **lockstep 36/36**, **fuzz 10,005×2-warp 0 mismatch 100% (32/32)**, **formal
+  PROVEN**. Demos `dotprod`=26, `parmax`=3 verified. 1895 flops; generic-cell count is a
+  poor proxy (16815, mux artifact) — real area needs the sky130 PDK (Phase 7 / CI).
 
 ## Phase 6–8 status (honest)
 - **Phase 6 (DFT):** flow scripted (`dft/scan_atpg.sh`, yosys→Fault), test-enable bit in RTL.
