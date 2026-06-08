@@ -27,3 +27,6 @@ dv/formal/*/
 # Editor / OS
 .DS_Store
 *.swp
+
+# TT src/ is staged from rtl/ by the gds workflow (rtl/ is canonical)
+/src/

@@ -1,9 +1,10 @@
 # Tiny Tapeout project configuration (sky130A). The official tt-gds-action consumes this
-# to harden the design to GDS. Top is tt_um_warpone; sources are the core + wrapper.
-#
-# NOTE: warpone_core.v `\`include`s the generated warpone_decode.vh (from isa/ISA.yaml).
-# CI regenerates it (`make decoder`) and the TT synth must see rtl/core on its include path;
-# see .github/workflows/gds.yml and DECISIONS D7.1. Verified only in CI (no local PDK).
+# (via tt-support-tools) to harden the design to GDS. Sources are staged into src/ by the
+# gds workflow (kept canonically in rtl/); source_files are names relative to src/.
+# warpone_core.v `\`include`s warpone_decode.vh (generated from isa/ISA.yaml, also staged
+# into src/); yosys resolves the same-directory include.
+yaml_version: 6
+
 project:
   title:        "WarpOne SIMT Core"
   author:       "WarpOne contributors"
@@ -14,11 +15,9 @@ project:
   tiles:        "4x2"
   top_module:   "tt_um_warpone"
   source_files:
-    - "rtl/core/warpone_decode.vh"
-    - "rtl/core/warpone_core.v"
-    - "rtl/tt_top/tt_um_warpone.v"
+    - "warpone_core.v"
+    - "tt_um_warpone.v"
 
-# Pin map (see docs/INTEGRATION.md). Host CSR interface over the TT IOs.
 pinout:
   ui[0]: "host wdata[0]"
   ui[1]: "host wdata[1]"
