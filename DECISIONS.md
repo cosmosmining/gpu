@@ -48,6 +48,12 @@
   dropping the 2nd warp) to fit 4x2, OR a larger tile (relaxes the 4x2 hard constraint).
   Per the working agreement (area >70%) this is an operator decision — asked.
 
+- **D7.3 Operator approved a 6x4 tile (relaxing the 4x2 size target) to keep the full
+  design.** Given the real P&R result (D7.2: full 2-warp + P2 + scratchpad ~2.1x over 4x2),
+  the operator chose to keep all verified features and harden on 6x4 (~527k um2, ~60% util)
+  rather than apply the fallback ladder. No feature loss, no re-verification needed; only
+  info.yaml `tiles` changes (DIE_AREA + DEF template are derived from it). Re-hardened in CI.
+
 ## 2026-06-07 — Phases 6–8: infrastructure (gates require EDA tools beyond the dev container)
 
 - **D6.1 DFT (scan + ATPG) infrastructure, execution pending Fault.** The flow is scripted

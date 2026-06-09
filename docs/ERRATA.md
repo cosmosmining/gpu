@@ -13,8 +13,9 @@ the full flow and **failed at global routing with congestion** (`[GRT-0116]`). M
 Cause: the variable-index read-mux trees over I-mem (32×16), the 2×4×8×8 register file, and
 the 4-bank scratchpad across 2 warps dominate area (~16.8k generic cells).
 
-Workaround / status: **OPEN** — apply the area fallback ladder (drop P2 → scratchpad
-4→2 banks → drop 2nd warp, keeping scheduler interfaces) to fit 4×2, **or** use a larger
-tile (e.g., 5×4/6×4), which relaxes the 4×2 hard constraint (operator decision). The RTL is
-functionally complete and fully verified; this is a physical-area/PPA tradeoff, not a bug.
+Workaround / status: **RESOLVED via larger tile (re-harden pending).** Operator approved
+moving to a **6×4** tile (DECISIONS D7.3), keeping the full verified 2-warp + P2 +
+scratchpad design (no feature loss, no re-verification). 6×4 ≈ 527k µm² → ~60% util. The
+RTL is functionally complete and fully verified; this was a physical-area/PPA tradeoff,
+not a bug. (The area fallback ladder remains the path if a 4×2 part is ever required.)
 

@@ -1,8 +1,8 @@
 # Tiny Tapeout project configuration (sky130A). The official tt-gds-action consumes this
 # (via tt-support-tools) to harden the design to GDS. Sources are staged into src/ by the
 # gds workflow (kept canonically in rtl/); source_files are names relative to src/.
-# warpone_core.v `\`include`s warpone_decode.vh (generated from isa/ISA.yaml, also staged
-# into src/); yosys resolves the same-directory include.
+# Tile size: 6x4 (operator-approved, DECISIONS D7.3) — real P&R showed the full 2-warp +
+# P2 + scratchpad design (~326k um2) is ~2.1x the 4x2 tile; 6x4 (~527k um2) fits at ~60% util.
 yaml_version: 6
 
 project:
@@ -12,7 +12,7 @@ project:
   description:  "4-lane, 2-warp SIMT compute core: divergence mask stack, banked scratchpad, performance counters"
   language:     "Verilog"
   clock_hz:     50000000
-  tiles:        "4x2"
+  tiles:        "6x4"
   top_module:   "tt_um_warpone"
   source_files:
     - "warpone_core.v"
